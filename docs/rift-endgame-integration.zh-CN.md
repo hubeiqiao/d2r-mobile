@@ -1,6 +1,6 @@
 # 大秘境终局整合与原生验收
 
-本分支整合#27安全结算、#28随机路线/遭遇、#30层数封顶，并加入重复材料奖励与诊断。它不是完整终局系统的发布版。当前无游戏可执行文件、RomFS、iPhoneOS SDK或真机运行，不能把以下宿主验证当成真实体验。
+本分支整合#27安全结算、#28随机路线/遭遇、#30层数封顶，并加入重复材料奖励与诊断。它不是完整终局系统的发布版。当前无游戏可执行文件、RomFS或真机运行。已找到 Xcode iPhoneOS SDK，UIKit 语法编译通过；不能把宿主验证当成真实游戏体验。
 
 ## 当前实现状态
 
@@ -46,3 +46,14 @@
 6. 检查两/三图进度足够；所有出口/边界、首次进入、重进、暂停、图耗尽重开、旧场返回、奖励失败/不明/死亡、快速新场、界面中英与手柄，附修复后截图。iPad测p95帧时间/温控/输入，未达标否决高密度。
 
 设计学习：D3的地图×怪群×词缀×进度价值是多维变化；[Last Epoch 2021官方复盘](https://forum.lastepoch.com/t/monolith-overhaul/37245)强调目标刷取与玩家选择，[1.0补丁](https://forum.lastepoch.com/t/last-epoch-1-0-patch-notes/62536/3)降低随机修饰相对基础难度的影响。适配推论是保留可预测基础挑战、明确目标材料，并在兼容与预警预算内随机；不是把这些历史数值照搬。更多D3证据见`d3-rift-design.zh-CN.md`。
+
+
+## 2026-10-13 actual group integration / 实际怪群接入
+
+`DM_RIFT_ENCOUNTERS=1` plus exact `DM_RIFT_EXTRA_GROUPS=1` and the registered OBS17 death gate enable actual native ordinary-monster recombination from distinct hostile species already observed on the current map. This is not a cross-Act curated pool, champion pack or native skill affix. Default remains off. Server alignment uses the existing completion-sweep reader; no client targeting function is called on server units. Begin/tick/death/finish/abandon/new-game lifecycle is connected. At most 3 groups/run, 2 or 3 units/group, 4 alive, 8 created; first 125 ticks and movement16, then cooldown250. No feet fallback: reachable same-map loaded room, distance10..24. Null/ambiguous native creation permanently stops further attempts. Only authoritative death releases capacity; unloading does not. Result logs are bounded. Native spawn/AI/collision, return-entry safety and p95 performance remain unverified; the grid scans a49x49 window and requires a device frame-time check. Cancellation stops new spawning; it does not invent a despawn interface.
+
+同时开启上述两个精确开关且产物带 OBS17 死亡门，才启用当前地图已观察普通敌对怪种的真实原生重组。默认关闭；不是跨幕怪种池、冠军怪群或技能词缀。接入开场、每拍、权威死亡、结算、放弃与换局；最多3群、同时4只、总计8只。冷却和入场保护、可达落点及异常停用有宿主回归。原生 AI、刷怪、返回入口安全及性能必须真机验收；取消只停止新增，不臆造销毁接口。
+
+Selected host tests now total13, including production groups policy and authoritative quest-death argument bridge. Strict C11 and UBSan groups tests pass. Actual production HUD producer + unchanged UIKit renderer + localization table ran under Mac Catalyst:8 EN/ZH cases,0 failures (100+3→100,99+3→100,74+3→77,100+0→same). No Simulator runtimes are installed, so this is real UIKit execution, not iPad/game validation. Reproduction harness and screenshots: `/private/tmp/rift-uikit-validation` in the author workspace. Earlier statement that the iPhoneOS SDK was unavailable was incorrect; scoped DEVELOPER_DIR resolved it.
+
+宿主13组验证通过；怪群 UBSan 通过。生产 HUD 和本地化表的真实 UIKit 离屏运行8个中英案例零失败。没有已安装的模拟器运行时，因此明确标注为 Mac Catalyst，不声称 iPad 或游戏通过。此前“iPhoneOS SDK 不可用”的判断已纠正。

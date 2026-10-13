@@ -49,6 +49,20 @@ int main(void) {
     dm_rift_menu_start(100); dm_rift_menu_reward_target(1); assert(reward_target() == 5);
     assert(m.reward_successes == 2 && m.reward_failures == 1);
     unsetenv("DM_RIFT_ENCOUNTERS"); unsetenv("DM_RIFT_REPEAT_REWARDS");
+    /* 权威死亡桥接：确认真实参数被替换前计数，并拒绝另一局。
+     * Authoritative death bridge: account before stand-in replacement, reject another game. */
+    uint8_t mon[0x200]={0}, path[0x80]={0}, room[0x30]={0}, ex[0xa0]={0}, level[0x220]={0};
+    *(uint32_t *)mon=1; *(uint32_t *)(mon+8)=101;
+    *(uint64_t *)(mon+0x38)=(uint64_t)(uintptr_t)path;
+    *(uint64_t *)(path+0x20)=(uint64_t)(uintptr_t)room;
+    *(uint64_t *)(room+0x18)=(uint64_t)(uintptr_t)ex;
+    *(uint64_t *)(ex+0x90)=(uint64_t)(uintptr_t)level;
+    *(int32_t *)(level+0x1f8)=7;
+    L.G=123; K.nmaps=1; K.maps[0]=7; atomic_store(&K.st,ST_RUN);
+    uint64_t regs[31]={123,(uint64_t)(uintptr_t)mon};
+    rift_quest_obs(regs); assert(regs[1]!=(uint64_t)(uintptr_t)mon);
+    regs[0]=124; regs[1]=(uint64_t)(uintptr_t)mon; rift_quest_obs(regs);
+    assert(regs[1]==(uint64_t)(uintptr_t)mon);
     puts("t_rift_integration OK: factory outcomes, pending confirmation, fixed rewards, ambiguity no retry, bounded scale-once");
     return 0;
 }

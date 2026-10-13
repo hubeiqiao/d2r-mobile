@@ -24,6 +24,13 @@ static const float RANK_BONUS[3] = {0, 1000, 2000};
 static const uint16_t BOSS_CLASS[] = {156, 211, 229, 242, 243, 250, 256, 267, 333, 365, 526, 544, 546, 547, 548, 549, 550,
                                       559, 570, 704, 705, 706, 707, 708, 709, 745, 746, 747};
 
+// 复用已核实的 Boss 类表；怪群重组排除这些类。
+// Reuse the verified boss class table; encounter recombination excludes these classes.
+int dm_target_boss_class(uint32_t cls) {
+    for (size_t i = 0; i < sizeof BOSS_CLASS / sizeof *BOSS_CLASS; i++) if (BOSS_CLASS[i] == cls) return 1;
+    return 0;
+}
+
 static int read_live(uint64_t a, void *out, size_t n) {
     vm_size_t got = 0;
     return a >= 0x1000 && a <= UINT64_MAX - n &&
@@ -38,7 +45,7 @@ static int unit_rank(uint64_t unit, uint32_t *cls, uint8_t *flags) {
     // Unit: +0 type, +4 class id, +0x10 type data (monster = MonsterData, +0x1A TypeFlag)
     if (!read_live(unit, head, sizeof head) || head[0] != UNIT_MONSTER) return -1;
     *cls = head[1];
-    for (size_t i = 0; i < sizeof BOSS_CLASS / sizeof *BOSS_CLASS; i++) if (BOSS_CLASS[i] == head[1]) return 2;
+    if (dm_target_boss_class(head[1])) return 2;
     if (!read_live(unit + 0x10, &data, 8) || !read_live(data + 0x1a, flags, 1)) return -1;
     return (*flags & (TF_SUPERUNIQUE | TF_CHAMPION | TF_UNIQUE)) ? 1 : 0;
 }
