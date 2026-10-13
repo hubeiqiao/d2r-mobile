@@ -2,7 +2,7 @@
 // Rift tower climb (dm_rift.c)
 #pragma once
 #include <stdint.h>
-typedef struct { int tier; float progress; int secs_left, done, guardian, inc; } dm_rift_hud_t;
+typedef struct { int tier; float progress; int secs_left, done, guardian, inc, next_tier; } dm_rift_hud_t;
 void dm_rift_tick(uint64_t G, uint64_t player, uint8_t *main_base);   // 服务端拍（diag.c） | Server tick (diag.c)
 void dm_rift_c2s(uint64_t G, const uint8_t *pkt, uint32_t len);      // 客户端命令（点门） | Client command (door tap)
 void dm_rift_client_pump(uint8_t *main_base);                         // 取手柄处（dm_world.c）：认击杀、新刷出的怪 | At the controller sampling point (dm_world.c): recognize kills and newly spawned monsters
