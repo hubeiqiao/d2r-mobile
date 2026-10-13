@@ -6,6 +6,9 @@ void dm_rift_groups_begin(int seq, int profile, int enabled);
 void dm_rift_groups_tick(uint8_t *B, uint64_t G, uint64_t player, int level, uint32_t tick, uint32_t guardian);
 void dm_rift_groups_death(int seq, uint32_t id);
 void dm_rift_groups_cancel(int seq);
+/* 离开秘境图时重置入场保护，不释放存活名额、不改总预算。
+ * Leaving a rift map resets entry protection, not live capacity or run budget. */
+void dm_rift_groups_leave(int seq);
 /* 生产与测试共同使用的策略入口；回调保留原生读取/生成边界。
  * Shared production/test policy entry; callbacks preserve native read/spawn boundaries. */
 typedef struct { uint32_t id, cls; int level, hostile, owned, boss, flags, dead; } dm_rg_candidate;

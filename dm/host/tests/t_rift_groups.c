@@ -5,11 +5,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+int dm_rift_server_hostile(uint64_t unit){(void)unit;assert(!"native classifier must not execute in host policy tests");return 0;}
 int dm_target_boss_class(uint32_t cls){return cls==99;}
-static struct {dm_rg_candidate c[12];int n,spots,calls,bad,ambiguous;uint32_t id,seen[16];} F;
-static int collect(void*v,dm_rg_candidate*out,int cap){(void)v;int n=F.n<cap?F.n:cap;memcpy(out,F.c,(size_t)n*sizeof*out);return n;}
+static struct {dm_rg_candidate c[12];int n,spots,calls,bad,ambiguous,rejected,duplicate,collects;uint32_t id,seen[16];} F;
+static int collect(void*v,dm_rg_candidate*out,int cap){(void)v;F.collects++;int n=F.n<cap?F.n:cap;memcpy(out,F.c,(size_t)n*sizeof*out);return n;}
 static int spot(void*v,int*x,int*y){(void)v;F.spots++;*x=F.bad?20:32;*y=0;return 1;}
-static uint32_t spawn(void*v,uint32_t cls,int x,int y){(void)v;(void)x;(void)y;F.seen[F.calls++]=cls;return F.ambiguous?UINT32_MAX:++F.id;}
+static uint32_t spawn(void*v,uint32_t cls,int x,int y){(void)v;(void)x;(void)y;F.seen[F.calls++]=cls;return F.ambiguous?UINT32_MAX:F.rejected?0:F.duplicate?101:++F.id;}
 static unsigned random_pick(void*v,unsigned n){(void)v;(void)n;return 0;}
 static dm_rg_ops ops={NULL,collect,spot,spawn,random_pick};
 static void setup(int profile){memset(&F,0,sizeof F);F.id=100;F.n=2;F.c[0]=(dm_rg_candidate){.id=1,.cls=11,.level=7,.hostile=1};F.c[1]=(dm_rg_candidate){.id=2,.cls=12,.level=7,.hostile=1};dm_rift_groups_begin(10,profile,1);dm_rift_groups_step(10,7,0,0,0,0,&ops);}
@@ -24,9 +25,15 @@ int main(void){
  setup(0);step(124);assert(!F.calls);dm_rift_groups_step(10,7,125,15,0,0,&ops);assert(!F.calls);step(125);assert(F.calls==2&&F.seen[0]==11&&F.seen[1]==12);assert(dm_rift_groups_alive()==2);step(374);assert(F.calls==2);step(375);assert(F.calls==4&&dm_rift_groups_alive()==4);step(625);assert(F.calls==4);
  dm_rift_groups_death(9,101);assert(dm_rift_groups_alive()==4);dm_rift_groups_death(10,101);dm_rift_groups_death(10,101);assert(dm_rift_groups_alive()==3);dm_rift_groups_death(10,102);step(625);assert(F.calls==6);for(int i=101;i<=106;i++)dm_rift_groups_death(10,(uint32_t)i);step(1000);assert(F.calls==6); /* Three group cap. */
  setup(1);step(125);assert(F.calls==3);step(375);assert(F.calls==3);for(int i=101;i<=103;i++)dm_rift_groups_death(10,(uint32_t)i);step(375);assert(F.calls==6);for(int i=104;i<=106;i++)dm_rift_groups_death(10,(uint32_t)i);step(625);assert(F.calls==6&&dm_rift_groups_created()<=8);
- setup(0);F.n=8;for(int i=2;i<8;i++)F.c[i]=F.c[0];F.c[0].owned=1;F.c[1].boss=1;F.c[2].flags=2;F.c[3].flags=4;F.c[4].flags=8;F.c[5].flags=16;F.c[6].level=8;F.c[7].hostile=0;step(125);assert(!F.calls);
+ setup(0);F.n=8;for(int i=2;i<8;i++)F.c[i]=F.c[0];F.c[0].owned=1;F.c[1].boss=1;F.c[2].flags=2;F.c[3].flags=4;F.c[4].flags=8;F.c[5].flags=16;F.c[6].level=8;F.c[7].hostile=0;step(125);assert(!F.calls);int collect_before=F.collects;step(126);assert(F.collects==collect_before);
  setup(0);F.n=1;step(125);assert(F.calls==2&&F.seen[0]==11&&F.seen[1]==11);
- setup(0);F.ambiguous=1;step(125);assert(F.calls==1&&dm_rift_groups_disabled());F.ambiguous=0;step(1000);assert(F.calls==1);
+ setup(0);F.rejected=1;step(125);assert(F.calls==1&&!dm_rift_groups_disabled()&&!dm_rift_groups_alive());F.rejected=0;step(126);assert(F.calls==1);step(375);assert(F.calls==3);
+ setup(0);F.duplicate=1;step(125);assert(F.calls==2&&dm_rift_groups_created()==1&&dm_rift_groups_disabled());
+ setup(0);step(125);dm_rift_groups_leave(9);step(375);assert(F.calls==4); /* Stale leave cannot change current run. */
+ setup(0);step(125);dm_rift_groups_leave(10);assert(dm_rift_groups_alive()==2&&dm_rift_groups_created()==2);dm_rift_groups_step(10,7,400,0,0,0,&ops);step(524);assert(F.calls==2);step(525);assert(F.calls==4);
+ dm_rift_groups_begin(10,0,0);dm_rift_groups_tick((uint8_t*)1,1,1,7,1,0);assert(dm_rift_groups_disabled());
+ dm_rift_groups_begin(10,0,1);dm_rift_groups_tick((uint8_t*)1,1,1,7,1,10);assert(!dm_rift_groups_disabled());
+ setup(0);F.ambiguous=1;step(125);assert(F.calls==1&&dm_rift_groups_disabled());F.ambiguous=0;step(1000);assert(F.calls==1);dm_rift_groups_tick((uint8_t*)1,1,1,7,1000,0);
  setup(0);F.bad=1;step(125);assert(!F.calls);F.bad=0;step(126);assert(!F.calls);step(375);assert(F.calls==2);
  setup(0);dm_rift_groups_step(10,7,125,20,0,50,&ops);assert(!F.calls);dm_rift_groups_step(11,7,125,20,0,0,&ops);assert(!F.calls);step(125);dm_rift_groups_cancel(10);step(1000);assert(F.calls==2);dm_rift_groups_begin(11,0,1);dm_rift_groups_death(10,101);assert(!dm_rift_groups_alive());
  setup(0);dm_rift_groups_step(10,8,125,20,0,0,&ops);dm_rift_groups_step(10,8,250,40,0,0,&ops);assert(!F.calls); /* Candidates must match current map. */

@@ -455,17 +455,20 @@ int dm_rift_tier_hp_x10(int tier, int clvl) { int p = tier < 8 ? tier : 8, l9 = 
     uint32_t h85 = atomic_load(&g_mlhp[85]), hl = l9 > 0 && l9 < 112 ? atomic_load(&g_mlhp[l9]) : 0; if (h85 && hl && hl > h85) v = v * hl / h85; return (int)(v * tier_total_x1000(tier, 0) / 1000); }
 static uint32_t monlvl(uint64_t G, int lvl, int grp) { uint64_t T = tables(G), a = rd(T + 0x1178), n = rd(T + 0x1180); if (!a || lvl < 0 || (uint64_t)lvl >= n) return 0; return *(uint32_t *)(uintptr_t)(a + (uint64_t)lvl * 0x78 + (grp * 6 + 5) * 4); }   // 组 0 AC、2 HP、3 DM；资料片地狱列 | Group 0 AC, 2 HP, 3 DM; expansion Hell column
 static int scale_monster(uint64_t G, uint64_t u, int lt, int l9) {   // lt = 本层的等级（守护者 + 3）、l9 = 起算层的等级 | lt = this level's level (Guardian + 3), l9 = the baseline level's level
-    int l0 = gs(u, 12); if (l0 <= 0) return 0; if (lt > lvl_cap()) lt = lvl_cap(); if (l9 > lt) l9 = lt;
+    int l0 = gs(u, 12), basehp = gs(u, 7);
+    // 原生生命未就绪时不写零、不提交增强 ID；保持读取失败路径。
+    // Unready native max life must not write zero or commit the scaling ID; retain failure semantics.
+    if (l0 <= 0 || basehp <= 0) return 0; if (lt > lvl_cap()) lt = lvl_cap(); if (l9 > lt) l9 = lt;
     int tx = tier_total_x1000(K.tier, 0), lb = l0 > l9 ? l0 : l9, le = l0 > lt ? l0 : lt;   // lb：「起算层那只怪」的等级；le：写进单位的等级（不降级） | lb: the level of "that monster at the baseline level"; le: the level written into the unit (never lowered)
     if (le == l0 && lb == l0 && tx == 1000) return 1;   // 9 层、原生等级已不低于目标：什么都不用改 | level 9 and the native level is already no lower than the target: nothing to change
     uint32_t h0 = monlvl(G, l0, 2), hb = monlvl(G, lb, 2), d0 = monlvl(G, l0, 3), db = monlvl(G, lb, 3), a0 = monlvl(G, l0, 0), a1 = monlvl(G, le, 0); if (!h0 || !hb || !d0 || !db || !a0 || !a1) return 0;
-    long long want = (long long)gs(u, 7) * hb / h0 * tx / 1000, hp = want; if (hp > 0x7fffff00LL) hp = 0x7fffff00LL;   // 定点 ×256；原版上限 2²³ 点 | Fixed point ×256; the original cap is 2²³ points
+    long long want = (long long)basehp * hb / h0 * tx / 1000, hp = want; if (hp > 0x7fffff00LL) hp = 0x7fffff00LL;   // 定点 ×256；原版上限 2²³ 点 | Fixed point ×256; the original cap is 2²³ points
     // 顶到上限不静默：这只怪（多半是守护者）的生命没按线涨足，只剩伤害在涨。每开一层记前 3 只
     // Hitting the cap is not silent: this monster (most likely the Guardian) did not get its full life according to the line, and only its damage keeps
     // growing. The first 3 are logged for each level opened
     if (g_hp_seq != atomic_load(&g_run_seq)) { g_hp_seq = atomic_load(&g_run_seq); g_hp_scaled = g_hp_capped = 0; g_hp_peak_requested = 0; }
     g_hp_scaled++; g_hp_capped += hp != want; if (want > g_hp_peak_requested) g_hp_peak_requested = want;
-    if (hp != want) { static int n, sq = -1; int cur = atomic_load(&g_run_seq); if (cur != sq) { sq = cur; n = 0; } if (n++ < 3) LOG("秘境：第 %d 层 怪 id %u（类号 %u）生命按层应为 %lld 点，顶到原版上限 %lld 点（实得 ×%.2f，应得 ×%.2f）；伤害照加", K.tier, *(uint32_t *)(uintptr_t)(u + 8), *(uint32_t *)(uintptr_t)(u + 4), want >> 8, hp >> 8, (double)hp / gs(u, 7), (double)want / gs(u, 7)); }
+    if (hp != want) { static int n, sq = -1; int cur = atomic_load(&g_run_seq); if (cur != sq) { sq = cur; n = 0; } if (n++ < 3) LOG("秘境：第 %d 层 怪 id %u（类号 %u）生命按层应为 %lld 点，顶到原版上限 %lld 点（实得 ×%.2f，应得 ×%.2f）；伤害照加", K.tier, *(uint32_t *)(uintptr_t)(u + 8), *(uint32_t *)(uintptr_t)(u + 4), want >> 8, hp >> 8, (double)hp / basehp, (double)want / basehp); }
     int dpct;   // 伤害：加到属性 25 上的百分比 | Damage: percentage added to stat 25
     { int f = grow_cfg(3), tt = K.tier > 100 ? 100 : K.tier, full = (int)(((long long)db * tier_total_x1000(100, 1) / d0 - 1000 + 5) / 10);   // full = 这只怪在 100 层时的百分比（原算法的终点） | full = this monster's percentage at Rift level 100 (the end point of the original algorithm)
       dpct = tt <= f || f >= 100 ? 0 : (int)((long long)full * (tt - f) / (100 - f)); }   // 起加层及以下 0，之后逐层线性到 full（见 grow_cfg 上面的说明） | 0 at and below the start Rift level, then linear per Rift level up to full (see the note above grow_cfg)
@@ -933,10 +936,10 @@ static uint64_t give_item2(uint64_t G, uint64_t player, const char *code4, int q
     LOG("秘境：掉落 %.4s 品质 %d → %s（物品数据 品质 %d、暗金行 %d、物品等级 %d、标志 %#x）", code4, q, it ? "成" : "【红】败", d ? *(int32_t *)(uintptr_t)d : -1, d ? *(int32_t *)(uintptr_t)(d + 0x34) : -1, d ? *(int32_t *)(uintptr_t)(d + 0x38) : -1, d ? *(uint32_t *)(uintptr_t)(d + 0x18) : 0);
     return it;
 }
-// 原生生成结果：未创建可重试；创建后落地状态不明不得重试，防止重复物品。
-// Native creation result: retry only when nothing was created; uncertain placement after creation must not retry, preventing duplicates.
+// 原生工厂空返回也不证明零副作用；空或落地状态不明均禁止重试。
+// A null native factory result does not prove zero side effects; null/uncertain placement must not retry.
 static int reward_item_result(uint64_t it) {
-    if (!it) return RF_GRANT_REJECTED;
+    if (!it) return RF_GRANT_AMBIGUOUS;
     return *(uint32_t *)(uintptr_t)it == 4 && *(uint32_t *)(uintptr_t)(it + 0xc) == 3 && rd(it + 0x10) ? RF_GRANT_CONFIRMED : RF_GRANT_AMBIGUOUS;
 }
 static unsigned reward_rng(void *ctx) { (void)ctx; return (unsigned)rnd(5); }
@@ -1170,7 +1173,9 @@ void dm_rift_tick(uint64_t G, uint64_t player, uint8_t *main_base) {
         dm_quiet_difficulty_msg(0); GS.bm_on = 0; shelf_restore(); gamble_restore(); memset(&L, 0, sizeof L); L.G = G; L.player = player; L.eligible = -1; L.lv_prev = -1; L.resume = K.resume_tier; K.resume_tier = 0;   // resume：图用完走的一键重开，到新局才接着开；GS.bm_on = 0：位图属于上一局（已释放），不写回 | resume: the one-tap restart taken when maps ran out continues only once in the new run; GS.bm_on = 0: the bitmap belongs to the previous run (already freed), not written back
     }
     L.last_t = t; built_scan(player);
-    int lv = unit_level(player); if (!lv || !unit_room(player)) return;
+    int lv = unit_level(player);
+    if (!lv || !in_rift_map(lv)) dm_rift_groups_leave(atomic_load(&g_run_seq));
+    if (!lv || !unit_room(player)) return;
     if (L.eligible < 0) { static int test = -1; if (test < 0) test = getenv("DM_RIFT_TEST") != NULL;
         uint8_t diff = *(uint8_t *)(uintptr_t)(G + 0x104); uint64_t q = rd(rd(rd(player + 0x10) + 0x40 + 8 * diff));
         L.eligible = test || (diff == 2 && q && (*(uint8_t *)(uintptr_t)(q + 0x50) & 1));

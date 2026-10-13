@@ -15,7 +15,7 @@ int main(void) {
     assert(!reward_player_ready(0)); assert(!reward_player_ready(it));
     *(uint32_t *)(unit + 0xc) = 17; assert(!reward_player_ready(it));
     *(uint32_t *)(unit + 0xc) = 1; assert(reward_player_ready(it));
-    assert(reward_item_result(0) == RF_GRANT_REJECTED);
+    assert(reward_item_result(0) == RF_GRANT_AMBIGUOUS);
     assert(reward_item_result(it) == RF_GRANT_AMBIGUOUS);
     *(uint32_t *)unit = 4; *(uint32_t *)(unit + 0xc) = 3; *(uint64_t *)(unit + 0x10) = 1;
     assert(reward_item_result(it) == RF_GRANT_CONFIRMED);
@@ -49,6 +49,13 @@ int main(void) {
     dm_rift_menu_start(100); dm_rift_menu_reward_target(1); assert(reward_target() == 5);
     assert(m.reward_successes == 2 && m.reward_failures == 1);
     unsetenv("DM_RIFT_ENCOUNTERS"); unsetenv("DM_RIFT_REPEAT_REWARDS");
+    /* 工厂空返回不是零物品的证据，生产分类只尝试一次。
+     * Null factory result is not evidence of zero items; production classification attempts once. */
+    g_rewards=(rf_reward_queue){0}; calls=0; outcome=reward_item_result(0);
+    assert(rf_reward_begin(&g_rewards,99,1,3,1,0,0));
+    assert(rf_reward_complete(&g_rewards,99,1));
+    assert(rewards_step(grant,0)==RF_REWARD_FAILED && calls==1);
+    assert(rewards_step(grant,0)==RF_REWARD_IDLE && calls==1);
     /* 权威死亡桥接：确认真实参数被替换前计数，并拒绝另一局。
      * Authoritative death bridge: account before stand-in replacement, reject another game. */
     uint8_t mon[0x200]={0}, path[0x80]={0}, room[0x30]={0}, ex[0xa0]={0}, level[0x220]={0};
