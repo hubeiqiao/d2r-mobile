@@ -279,7 +279,7 @@ static int in_rift_map(int lv) { for (int i = 0; i < K.nmaps; i++) if (K.maps[i]
 // 每场只抽一次方案，每张图只抽一次密度；环境变量保留原有250分/固定密度作为对照。
 // Roll a profile once per run and density once per map; an environment override retains the original 250-point/fixed-density control.
 static void encounter_prepare(void) {
-    const char *enc = getenv("DM_RIFT_ENCOUNTERS"); g_enc_enabled = !enc || strcmp(enc, "0");
+    const char *enc = getenv("DM_RIFT_ENCOUNTERS"); g_enc_enabled = enc && !strcmp(enc, "1");
     g_enc_roll = g_enc_enabled ? (unsigned)rnd(100) : 0;
     // 验证包固定方案 0..3；关闭优先，不接受异常值。
     // Verification build pins profile 0..3; disabling takes precedence, invalid values are ignored.
@@ -299,12 +299,13 @@ int dm_rift_active(void) { return atomic_load(&K.st) == ST_RUN; }
 // All challenge timing reads the guest clock guest_ns() (hle_os.c): it does not advance while the App is in the background / the screen is locked or while the system keyboard is up, so the countdown does not advance either;
 // time during which the game keeps running -- back in town, panels open, loading screens -- counts as usual. The start time is not written to disk (the sidecar file records elapsed seconds).
 static int g_left_done;   // 结算时剩余秒数：打倒守护者后顶部条与面板都显示它，不再往下走 | Seconds left at completion: after the guardian is defeated both the top bar and the panel show it, and it no longer counts down
+static int next_tier(void) { int nt = K.inc ? K.tier + K.inc : K.tier; return nt > 100 ? 100 : nt; }
 int dm_rift_hud(dm_rift_hud_t *o) {
     int st = atomic_load(&K.st); if (st != ST_RUN && st != ST_DONE) return 0;
     uint64_t now = guest_ns();
     int el = K.t0_ns ? (int)((now - K.t0_ns) / 1000000000ull) : 0; int need = atomic_load(&K.need);
     o->tier = K.tier; o->progress = need > 0 ? (float)atomic_load(&K.score) / need : 0; if (o->progress > 1) o->progress = 1;
-    o->secs_left = st == ST_DONE ? g_left_done : RIFT_SECS - el; o->done = st == ST_DONE; o->guardian = K.guard != 0 && !atomic_load(&K.guard_dead); o->inc = K.inc;
+    o->secs_left = st == ST_DONE ? g_left_done : RIFT_SECS - el; o->done = st == ST_DONE; o->guardian = K.guard != 0 && !atomic_load(&K.guard_dead); o->inc = K.inc; o->next_tier = next_tier();
     return 1;
 }
 
@@ -919,7 +920,7 @@ static void finish(uint64_t G, uint64_t player, uint64_t guard) {
     encounter_log("complete");
     uint64_t now = guest_ns();
     int left = RIFT_SECS - (int)((now - K.t0_ns) / 1000000000ull); g_left_done = left;   // 结算这一拍停表 | Stop the clock on the completion tick
-    K.inc = left >= 600 ? 3 : left >= 300 ? 2 : left > 0 ? 1 : 0; int next = K.tier + K.inc; if (next > 100) next = 100; if (!K.inc) next = K.tier;
+    K.inc = left >= 600 ? 3 : left >= 300 ? 2 : left > 0 ? 1 : 0; int next = next_tier();
     if (K.inc) { R.clears++; if (K.tier > R.best) R.best = K.tier; } if (K.inc && (!R.fast[K.tier] || RIFT_SECS - left < R.fast[K.tier])) R.fast[K.tier] = RIFT_SECS - left;
     if (K.inc) pts_grant(player);   // 通关点数：R.best 更新之后、下面 rec_save 之前。只算限时内通关（「超时通关不算过关，15 分钟内才是过关」），与上一行最高通关层同一口径 | clear points: after R.best is updated and before rec_save below. Only clears within the time limit count ("a clear after the time limit does not count as passing; only within 15 minutes does"), same rule as the highest cleared level on the previous line
     if (K.inc) for (int m = 10; m <= 100; m += 10) if (K.tier >= m && !(R.ms & (1u << (m / 10 - 1)))) milestone(G, player, m);   // 限时内通关才算首通 | Only a clear within the time limit counts as a first clear

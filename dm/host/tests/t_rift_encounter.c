@@ -20,7 +20,8 @@ static int route_draw(int n) { route_seed = route_seed * 1664525u + 1013904223u;
 int main(void) {
 #ifndef RF_LEGACY
     setenv("DM_RIFT_ENCOUNTERS", "0", 1); unsetenv("DM_RIFT_NEED"); encounter_prepare(); CHECK(atomic_load(&K.need) == 250 && !g_enc_enabled);
-    unsetenv("DM_RIFT_ENCOUNTERS"); encounter_prepare(); CHECK(atomic_load(&K.need) == g_encounter.need && g_enc_enabled);
+    unsetenv("DM_RIFT_ENCOUNTERS"); encounter_prepare(); CHECK(atomic_load(&K.need) == 250 && !g_enc_enabled);
+    setenv("DM_RIFT_ENCOUNTERS", "1", 1); encounter_prepare(); CHECK(atomic_load(&K.need) == g_encounter.need && g_enc_enabled);
     setenv("DM_RIFT_NEED", "700", 1); encounter_prepare(); CHECK(atomic_load(&K.need) == 700);
     setenv("DM_RIFT_NEED", "-1", 1); encounter_prepare(); CHECK(atomic_load(&K.need) == g_encounter.need);
     unsetenv("DM_RIFT_NEED");
