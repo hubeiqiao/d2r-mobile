@@ -35,3 +35,5 @@ At100, monster level already caps and HP caps at8388607, while character rewards
 Fixed starter/endgame builds, #23 first, multiple70/80/90/100 runs. Record map/group/affix, policy version/random result, configuration, native generation, loaded observation, elite encounters/skips, progress types, movement/trash/boss time, death cause, effective HP caps and output/hour. Separate common/rare scenarios; one geared character with few samples cannot establish global balance.
 
 Compare old/new at each tier. Reentry must not reroll; paused game time stays frozen; completion/abandon restores originals. Map exhaustion must preserve safe loot flow; boss rewards must be collectible/saved. Measure iPad p95 frame time/thermal/input; reduce density or reject unsafe scenarios. Probability tests verify selection, not actual native generation or enjoyment.
+
+Current implementation and executable handoff: [integration](rift-endgame-integration.md). Same-map ordinary species recombination and target materials are connected; native affixes and goblin remain interface-dependent. Cross-map and behavior design here remains follow-up work.
