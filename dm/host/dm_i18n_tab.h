@@ -318,4 +318,9 @@ static const struct { const char *k, *zh, *en; } k_dm_i18n[] = {
     { "dmAppMenuHelp", "帮助", "Help" },
     { "dmAppKeysTitle", "键盘与手柄按键对照", "Keyboard and Controller Buttons" },
     { "dmAppKeysText", "界面上的按键提示是手柄字母，键盘这样对应：\n\n确认（A）：空格 或 J　　返回（B）：Esc 或 K\n回车：确认；页面底部有「＋」提示时是 ＋（如起名后的「接受」）\n＋（菜单 / 新角色）：= 键　　−（地图）：Tab\n移动：W A S D（左摇杆）　　十字键：方向键\nX：U　　Y：I　　L：Q　　R：E　　ZL：Z　　ZR：C\n按左摇杆：F　　按右摇杆：G\n\n鼠标：左键点目标、界面、底部的按键提示和技能 / 药水格；右键 = 返回；滚轮滚列表。\n接上手柄可以直接用。这一页以后在「帮助」菜单里。", "On-screen button hints use controller letters. Keyboard mapping:\n\nConfirm (A): Space or J    Back (B): Esc or K\nReturn: confirm; acts as + when the page shows a + hint (e.g. Accept after naming)\n+ (menu / new character): = key    − (map): Tab\nMove: W A S D (left stick)    D-pad: arrow keys\nX: U    Y: I    L: Q    R: E    ZL: Z    ZR: C\nPress left stick: F    Press right stick: G\n\nMouse: left click targets, the interface, the button hints at the bottom and skill / potion slots; right click = back; wheel scrolls lists.\nA connected controller works right away. This page stays in the Help menu." },
+    { "dmRiftBalanced", "均衡遭遇", "Balanced" },
+    { "dmRiftSwarm", "群怪密集", "Swarm" },
+    { "dmRiftHunt", "精英猎场", "Elite Hunt" },
+    { "dmRiftDream", "密集梦境", "Dense Dream" },
+    { "dmRiftEncounterStart", "第 %d 层 · %s", "Level %d · %s" },
 };
