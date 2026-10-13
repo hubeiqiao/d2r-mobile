@@ -22,6 +22,12 @@ Per-map density varies by -10/-5/0/+5/+10%. Density is capped at9000, elite limi
 
 Species still come from each original map's native monster pool. The implemented mix is ordinary density versus elite-group frequency. No unverified monster-table fields or class IDs are written, and Dense Dream does not yet use a curated species/map subset. Changing composition by species requires native compatibility checks for animation, AI, room sizing and quest events. No treasure goblin model/escape AI has been found in the public host code; native resources are unavailable here. A future D2 adaptation needs a locally verified creature and lifecycle, bounded spawning, clean escape/kill reward handling, and explicit identification as an adaptation; do not claim that a goblin exists just because a dummy host test passes.
 
+## Route composition (follow-up implementation)
+
+When enabled, Balanced uses one wilderness plus one/two mazes; Swarm/Dream prefer two wilderness plus one maze; Hunt uses one wilderness plus two mazes. Shuffle order, so wilderness is no longer mandatory first. Draw without replacement. With only one wilderness remaining, Swarm falls back to one wilderness/two mazes. Existing used/prebuilt candidate filtering remains; no new IDs or species are added. Disabling profiles preserves original routing. A4000-route host simulation checks composition, candidate membership, uniqueness, either starting type and insufficient pools; native entrances/exits/pet placement remain unverified.
+
+See [d3-rift-design.md](d3-rift-design.md) for full research and proposed affix work.
+
 ## Measurements
 
 `encounter-start` records roll/profile/target. `encounter-map` records region configuration and says `configured_only=1`. `encounter-summary` logs recognized loaded hostile units and kills using the existing client scan, grouped by the player's map at observation/death, with normal/minion/champion/unique/superunique counts; guardian is excluded. These are not full-map spawns or exact elite packs and can include adjacent loaded rooms. Different visits/movement change coverage. Unit-ID dedup sets stop adding new IDs at4096 rather than overwriting them; `overflow=1` marks partial counts. The Rift sequence must match; stale summaries print unavailable. The final client kill may arrive after the completion snapshot, so the snapshot is not an authoritative total.

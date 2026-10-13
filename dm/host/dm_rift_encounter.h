@@ -25,6 +25,19 @@ static inline int rf_scaled(int base, int mult, int cap) {
     int64_t n = (int64_t)base * mult / 1000;
     return n > cap ? cap : (int)n;
 }
+// 只重排调用方已筛出的可用地图：群怪/梦境偏两张野外，猎场偏两张迷宫，再洗牌顺序。
+// Compose only caller-filtered available maps: Swarm/Dream favor two wilderness maps, Hunt favors two mazes, then shuffle order.
+static inline int rf_route_pick(int profile, const int *open, int no, const int *maze, int nm, int (*draw)(int), int out[3]) {
+    if (!open || !maze || !draw || !out || no < 1 || nm < 2) return 0;
+    int n = profile == RF_BALANCED ? 2 + draw(2) : 3;
+    int o = (profile == RF_SWARM || profile == RF_DREAM) && no >= 2 ? 2 : 1;
+    int a = draw(no); out[0] = open[a];
+    if (o == 2) { int b = draw(no - 1); if (b >= a) b++; out[1] = open[b]; out[2] = maze[draw(nm)]; }
+    else { int b = draw(nm); out[1] = maze[b]; if (n == 3) { int c = draw(nm - 1); if (c >= b) c++; out[2] = maze[c]; } }
+    for (int i = n - 1; i > 0; i--) { int j = draw(i + 1), t = out[i]; out[i] = out[j]; out[j] = t; }
+    if (n == 2) out[2] = 0;
+    return n;
+}
 // 客户端观察去重，不覆盖旧 id；满了停止记新单位，不能把观察数当全图生成数。
 // Client observation deduplication never overwrites old IDs; once full, stop counting new units, and never equate observations with full-map generation.
 typedef struct { uint32_t ids[4096]; int overflow; } rf_observed;

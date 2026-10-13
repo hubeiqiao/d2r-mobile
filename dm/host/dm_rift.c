@@ -1008,11 +1008,11 @@ void dm_rift_menu_abandon(void) { atomic_store(&M.req_abandon, 1); atomic_store(
 static _Atomic int g_menu_seq; int dm_rift_menu_seq(void) { return atomic_load(&g_menu_seq); }   // 点城里的门的次数（面板据此认「又点了一次」） | Number of taps on the town door (the panel uses it to recognize "tapped again")
 int dm_rift_menu_pending(void) { return atomic_load(&M.req_abandon) != 0; }   // 放弃还没在服务端拍里执行（大秘境面板据此放开暂停） | Abandon has not yet been executed in the server tick (the greater rift panel releases the pause based on this)
 
-// 开一层：抽图（一张野外 + 1–2 张迷宫，不重复，且本局没用过）、改区域、计时、换关。成功返回 1
-// Open a level: draw maps (one wilderness map + 1–2 mazes, no repeats, not used in this run), modify regions, start the timer, change level. Returns 1 on success
+// 开一层：从本局未用的野外/迷宫编排不重复路线，改区域、计时、换关。成功返回 1
+// Open a level: compose a non-repeating wilderness/maze route from unused maps, modify regions, start the timer, change level. Returns 1 on success
 static int start_rift(uint64_t G, uint64_t player, uint32_t t, int tier) {
-    // 选图：一张野外 + 1–2 张迷宫，不重复，且本局没用过（同一局里生成过的关卡不会重新生成：怪打过了、图也一样）
-    // Map selection: one wilderness map + 1–2 mazes, no repeats, and not used in this run (a level generated in a run is not regenerated in the same run: the monsters are already killed and the map is the same)
+    // 先筛本局没用过且未预建的图；方案只编排候选，不绕过生成限制。
+    // Filter unused/unbuilt maps first; profiles compose these candidates without bypassing generation constraints.
     int fo[8], nf = 0, fm[24], nm = 0; for (unsigned k = 0; k < sizeof k_open / sizeof *k_open; k++) { int u = 0; for (int q = 0; q < L.nused; q++) u |= L.used[q] == k_open[k]; if (!u) fo[nf++] = k_open[k]; }
     built_scan(player);   // 服务端顺带建过的迷宫（没进去过也算）不抽：它的房间数已经定了，改不得 | Mazes the server has already built in passing (even if never entered) are not drawn: their room count is already fixed and must not be changed
     for (unsigned k = 0; k < sizeof k_maze / sizeof *k_maze; k++) { int u = 0; for (int q = 0; q < L.nused; q++) u |= L.used[q] == k_maze[k]; if (!u && !g_built[k_maze[k]]) fm[nm++] = k_maze[k]; }
@@ -1021,9 +1021,10 @@ static int start_rift(uint64_t G, uint64_t player, uint32_t t, int tier) {
         void dm_restart_request(void); K.resume_tier = tier; setenv("DM_RIFT_TEST_EXHAUST_DONE", "1", 1); unsetenv("DM_RIFT_TEST_EXHAUST");
         LOG("秘境：本局新图用完（野外剩 %d、迷宫剩 %d）→ 一键重开，新局直接开第 %d 层", nf, nm, tier); dm_restart_request(); return 0; }
     K.tier = tier; { const char *e = getenv("DM_RIFT_TIER"); if (e) K.tier = atoi(e); }   // 测试：钉层数 | Test: pin the level
-    K.nmaps = 2 + rnd(2); K.maps[0] = fo[rnd(nf)]; K.maps[1] = fm[rnd(nm)]; K.maps[2] = 0;
-    if (K.nmaps == 3) { do K.maps[2] = fm[rnd(nm)]; while (K.maps[2] == K.maps[1]); }
     encounter_prepare();
+    if (g_enc_enabled) K.nmaps = rf_route_pick(g_encounter.profile, fo, nf, fm, nm, rnd, K.maps);
+    else { K.nmaps = 2 + rnd(2); K.maps[0] = fo[rnd(nf)]; K.maps[1] = fm[rnd(nm)]; K.maps[2] = 0;
+        if (K.nmaps == 3) { do K.maps[2] = fm[rnd(nm)]; while (K.maps[2] == K.maps[1]); } }
     // 测试：钉图。分号隔开 = 本局第 1、2…次开局各用哪一段（次数超出用最后一段），用来造「上一层用过相邻迷宫」的现场
     // Test: pin the map. Semicolon-separated = which segment each of the 1st, 2nd... starts of this game uses (past the end, the last segment is used); used to set up the situation where "the previous level used an adjacent maze"
     { static int nth; const char *e = getenv("DM_RIFT_MAPS"); if (e) { for (int q = 0; q < nth; q++) { const char *nx = strchr(e, ';'); if (!nx) break; e = nx + 1; } nth++; K.maps[2] = 0; K.nmaps = sscanf(e, "%d,%d,%d", &K.maps[0], &K.maps[1], &K.maps[2]); } }
