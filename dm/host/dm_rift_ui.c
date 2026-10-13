@@ -75,7 +75,7 @@ void dm_rift_ui_on_uimsg(const char *cat, const char *act, const char *arg) {
     const char *k = arg + 8;
     if (!strcmp(k, "M1")) atomic_fetch_add(&g_step, -1); else if (!strcmp(k, "P1")) atomic_fetch_add(&g_step, 1);
     else if (!strcmp(k, "M10")) atomic_fetch_add(&g_step, -10); else if (!strcmp(k, "P10")) atomic_fetch_add(&g_step, 10);
-    else if (!strcmp(k, "Start")) atomic_store(&g_act, 1); else if (!strcmp(k, "Cont")) atomic_store(&g_act, 2); else if (!strcmp(k, "Abandon") || !strcmp(k, "Resel")) atomic_store(&g_act, 3);   // 已完成时的「重新选层」是和「放弃」同位置的另一个按钮，动作同放弃（服务端回选层页） | "Reselect level" when completed is a separate button at the same position as "Abandon", with the same action as Abandon (the server returns to the level selection page)
+    else if (!strcmp(k, "Start")) atomic_store(&g_act, 1); else if ((!strcmp(k, "Cont") || !strcmp(k, "Cancel"))) atomic_store(&g_act, 2); else if (!strcmp(k, "Abandon") || !strcmp(k, "Resel") || !strcmp(k, "Confirm")) atomic_store(&g_act, 3);   // 同位置的按钮按菜单状态分派；确认与取消各有独立控件 | Buttons sharing a position dispatch by menu state; confirm and cancel have distinct widgets
     atomic_store(&g_dirty, 1);
 }
 // 佣兵面板六个新装备格的暗红盖板（TouchMercLock_<部位>，布局 merc_slots.py）：没解锁时挪到各自的格子上，解锁了挪出屏。只写我们自己的 Touch* 控件
@@ -128,7 +128,7 @@ void dm_rift_ui_pump(void) {
       if (au && want) { if (!at) at = (int)fr; if ((int)fr - at > 90) { at = 0; static int lg; if (lg++ < 4) LOG("秘境选层页：测试开关替玩家点 %s（页 %d）", au, m.menu);
           if (m.menu == 1 && atoi(au) > 0) { g_sel = atoi(au); if (g_sel > m.unlock) g_sel = m.unlock; atomic_store(&g_act, 1); } else if (m.menu == 2 && (strstr(au, "cont") || strstr(au, "abandon"))) atomic_store(&g_act, strstr(au, "abandon") ? 3 : 2); } } else at = 0; }
     // 手柄模式：这一页的按钮原版焦点导航不认识，照积分牌 / 编年史仓库页的做法接管本页的键（dm_padmode_page_keys），走的还是下面同一套动作号：
-    //   选层页 左 / 右 = −1 / +1、下 / 上 = −10 / +10、A = 开始；进行中 / 已完成页 A = 继续、X = 放弃 / 重新选层（放弃不可撤销，不放在 A 上）；B 没接管 = 原版关面板。
+    //   选层页 左 / 右 = −1 / +1、下 / 上 = −10 / +10、A = 开始；进行中 / 已完成页 A = 继续、X = 放弃 / 开始新一场（放弃不可撤销，不放在 A 上）；B 没接管 = 原版关面板。
     //   键位说明走原版底部提示条（动作号 0 = A、2 = X），字用按钮上的同一个串
     // Controller mode: the original focus navigation does not know this page's buttons, so the page's keys are taken over the same way as on the kill board
     // / Chronicle vault pages (dm_padmode_page_keys), still going through the same action numbers below:
@@ -138,23 +138,26 @@ void dm_rift_ui_pump(void) {
     { int dm_padmode_current(void); uint64_t dm_padmode_page_keys(uint64_t); void dm_padmode_legend(int, const char *);
       { int kx = dm_padmode_current() ? 52 : 99999; rect(find(bw, "TouchRF_KeyA", 0), kx, 1181); rect(find(bw, "TouchRF_KeyA2", 0), kx, 1181); rect(find(bw, "TouchRF_KeyX", 0), kx, 844); }   // 按钮左端的原版键帽：只在手柄模式显示 | The original button glyph at the left end of the button: shown only in controller mode
       rect(find(panel(), "TouchCloseBox", 1), dm_padmode_current() ? 99999 : -998, 256);   // 右上角的触屏关闭 X（布局同编年史 _chronicle_touch）：手柄模式挪到屏外（按 B 关），触屏模式放回布局里的位置；同 dm_kills.c | the touch close X in the top-right corner (layout same as the Chronicle _chronicle_touch): moved off screen in controller mode (B closes), put back at its layout position in touch mode; same as dm_kills.c
-      if (dm_padmode_current()) { int ch = m.menu == 2;
+      if (dm_padmode_current()) { int ch = m.menu != 1;
           uint64_t ev = dm_padmode_page_keys(DM_BTN_A | DM_BTN_X | DM_BTN_LEFT | DM_BTN_RIGHT | DM_BTN_UP | DM_BTN_DOWN);
-          dm_padmode_legend(0, dm_str(b, ch ? "dmRiftBtnCont" : "dmRiftBtnStart")); if (ch) dm_padmode_legend(2, dm_str(b, m.done ? "dmRiftBtnResel" : "dmRiftBtnAbandon"));
+          dm_padmode_legend(0, dm_str(b, m.menu == 3 ? "dmRiftBtnCancel" : ch ? "dmRiftBtnCont" : "dmRiftBtnStart")); if (ch) dm_padmode_legend(2, dm_str(b, m.menu == 3 ? "dmRiftBtnConfirm" : m.done ? "dmRiftBtnResel" : "dmRiftBtnAbandon"));
           if (!ch) { int st = (ev & DM_BTN_LEFT ? -1 : 0) + (ev & DM_BTN_RIGHT ? 1 : 0) + (ev & DM_BTN_DOWN ? -10 : 0) + (ev & DM_BTN_UP ? 10 : 0); if (st) atomic_fetch_add(&g_step, st); if (ev & DM_BTN_A) atomic_store(&g_act, 1); }
           else if (ev & DM_BTN_A) atomic_store(&g_act, 2);
-          else if (m.done) { if (ev & DM_BTN_X) atomic_store(&g_act, 3); }   // 已完成页的 X = 重新选层（进度已记，不丢东西）：按一下 | X on the completed page = reselect the level (progress is already recorded, nothing is lost): a single press
+          else if (m.done) { if (ev & DM_BTN_X) atomic_store(&g_act, 3); }   // 已完成页 X 选新场层数，确认页 X 才确认；选层不丢旧场返回位置 | X selects a new tier on the completed page and confirms only on the confirmation page; selection preserves the old return location
           else { static uint64_t t0; uint64_t now_ns(void), dm_padmode_page_held(void), now = now_ns();   // 进行中页的 X = 放弃（本层作废、不可撤销）：按住 0.8 秒才算，防误按 | X on the in-progress page = quit (this level is forfeited, irreversible): it only counts after being held for 0.8 seconds, to prevent accidental presses
               if (!(dm_padmode_page_held() & DM_BTN_X)) t0 = 0; else if (!t0) t0 = now; else if (t0 != 1 && now - t0 >= 800000000ull) { t0 = 1; atomic_store(&g_act, 3); LOG("大秘境面板：手柄按住 X 0.8 秒 → 放弃"); } }
           if (ev) { atomic_store(&g_dirty, 1); LOG("大秘境面板：手柄键 %#llx（%s页）", (unsigned long long)ev, ch ? "继续 / 放弃" : "选层"); } } }
     int a = atomic_exchange(&g_act, 0);
     if (g_sel < 0) g_sel = m.def < 1 ? 1 : m.def > m.unlock ? m.unlock : m.def;
     { int st = atomic_exchange(&g_step, 0); if (st) { g_sel += st; if (g_sel < 1) g_sel = 1; if (g_sel > m.unlock) g_sel = m.unlock; } }
-    if (a == 1 && m.menu == 1) { dm_rift_menu_start(g_sel); pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
+    if (a == 1 && m.menu == 1) { dm_rift_menu_start(g_sel); if (m.done) { atomic_store(&g_dirty, 1); return; } pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
     if (a == 2 && m.menu == 2) { dm_rift_menu_continue(); pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
+    if (a == 2 && m.menu == 3) { dm_rift_menu_select(); atomic_store(&g_dirty, 1); return; }
+    if (a == 3 && m.menu == 3) { dm_rift_menu_confirm(); pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
+    if (a == 3 && m.menu == 2 && m.done) { dm_rift_menu_select(); atomic_store(&g_dirty, 1); return; }
     if (a == 3 && m.menu == 2) { dm_rift_menu_abandon(); pause_set(0); g_sel = -1; return; }   // 放弃后服务端拍里把页换回选层（面板不关；放开暂停让拍走到） | After abandon, the server tick switches the page back to level selection (the panel stays open; release the pause so the tick gets there)
     static int frame; if (!atomic_exchange(&g_dirty, 0) && ++frame % 15) return;
-    rect(find(bw, "TouchRF_Sel", 0), m.menu == 2 ? 99999 : 0, 0); rect(find(bw, "TouchRF_Cho", 0), m.menu == 2 ? 0 : 99999, 0);
+    rect(find(bw, "TouchRF_Sel", 0), m.menu != 1 ? 99999 : 0, 0); rect(find(bw, "TouchRF_Cho", 0), m.menu != 1 ? 0 : 99999, 0);
     char t[128];
     // 英文版：左栏「标签 + 右对齐的值」英文比中文宽，标签写全称用中号字会顶到数值。布局里每行另有一个小一号的标签控件 …LE（缺省在屏外）：
     // 游戏语言不是中文时用它、把中号那个挪出去，数值列再右移 16（右缘 496，离右边列表 530 留 34）。中文：中号标签在原位、数值列不动，画面不变
@@ -170,22 +173,25 @@ void dm_rift_ui_pump(void) {
           snprintf(t, sizeof t, "TouchRF_Gam%dL", i); rect(find(bw, t, 0), en ? 99999 : 0, y); snprintf(t, sizeof t, "TouchRF_Gam%dLE", i); rect(find(bw, t, 0), en ? 0 : 99999, y + (en ? 4 : 0)); } }
     rect(find(bw, "TouchRF_MsN", 0), en ? 99999 : 1030, -24); rect(find(bw, "TouchRF_MsNE", 0), en ? 930 : 99999, -24);   // 右上那句：英文用更宽、字更小的那个控件；纵坐标 −24 = touch_layout.py 的 RF_T0（第一行小标题整体上抬） | the top-right sentence: English uses the wider widget with the smaller font; y coordinate −24 = RF_T0 in touch_layout.py (the first row of small headings is raised as a whole)
     rect(find(bw, "TouchRF_AbT", 0), en ? 99999 : 0, 746); rect(find(bw, "TouchRF_AbTE", 0), en ? 0 : 99999, 746); rect(find(bw, "TouchRF_ContT", 0), en ? 99999 : 0, 1083); rect(find(bw, "TouchRF_ContTE", 0), en ? 0 : 99999, 1083);
-    if (m.menu == 2) {
+    if (m.menu != 1) {
         snprintf(t, sizeof t, dm_str(rb(), "dmRiftTierN"), m.tier); text(find(bw, "TouchRF_ChTier", 0), t);
         // 已打倒守护者：两句话各占一整行（写进左边的标签控件、值留空）；写进右对齐的值控件会压住标签（Mac 截图）
         // 「本层」三行 + 放弃上方的短句，按守护者打倒没有分两套（已打倒时放弃不丢进度：最高通关照记）。已打倒的三句各占一整行，写进左边的标签控件、值留空
         // Guardian defeated: the two sentences each take a full row (written into the label widget on the left, value left empty); writing into the right-aligned value widget would cover the label (Mac screenshot)
         // The three 「本层」(This Level) rows + the short sentence above Abandon come in two sets depending on whether the guardian is defeated (abandoning after it is defeated loses no progress: the highest clear is still recorded). The three sentences for the defeated case each take a full row, written into the label widget on the left with the value left empty
-        { int dm_padmode_current(void); text(find(bw, en ? "TouchRF_AbTE" : "TouchRF_AbT", 0), dm_str(rb(), m.done ? "dmRiftCapResel" : dm_padmode_current() ? "dmRiftCapVoidPad" : "dmRiftCapVoid")); }   // 手柄模式：放弃要按住 X（见上面的手柄段） | Controller mode: abandoning requires holding X (see the controller section above)
-        // 已完成页：上面一组 = 说明「换一层再打」+ 按钮「重新选层」（进度已记，叫「放弃」不对），下面一组 = 说明「回到守护者处」+ 按钮「继续」；
-        // 未完成页 = 「本层作废 / 放弃」「回到离开时的位置 / 继续」。「重新选层」是和「放弃」同位置的另一个按钮，挪进挪出（按钮上的字宿主写不了）
-        // Completed page: upper group = description "try another level" + button "Reselect level" (progress is already recorded, so calling it "Abandon" is
+        { int dm_padmode_current(void); text(find(bw, en ? "TouchRF_AbTE" : "TouchRF_AbT", 0), dm_str(rb(), m.menu == 3 ? "dmRiftCapConfirm" : m.done ? "dmRiftCapResel" : dm_padmode_current() ? "dmRiftCapVoidPad" : "dmRiftCapVoid")); }   // 手柄模式：放弃要按住 X（见上面的手柄段） | Controller mode: abandoning requires holding X (see the controller section above)
+        // 已完成页：上面一组 = 说明「选择新场层数」+ 按钮「开始新一场」（进度已记，叫「放弃」不对），下面一组 = 说明「返回本场拾取奖励」+ 按钮「继续」；
+        // 未完成页 = 「本层作废 / 放弃」「回到离开时的位置 / 继续」。「开始新一场」是和「放弃」同位置的另一个按钮，挪进挪出（按钮上的字宿主写不了）
+        // Completed page: upper group = description "try another level" + button "New Run" (progress is already recorded, so calling it "Abandon" is
         // wrong), lower group = description "return to the Guardian's spot" + button "Continue";
-        // uncompleted page = "this level is void / Abandon" and "return to the position at the time of leaving / Continue". "Reselect level" is a separate
+        // uncompleted page = "this level is void / Abandon" and "return to the position at the time of leaving / Continue". "New Run" is a separate
         // button at the same position as "Abandon", moved in and out (the host cannot write button text)
-        rect(find(bw, "TouchRF_Abandon", 0), m.done ? 99999 : 0, 818); rect(find(bw, "TouchRF_Resel", 0), m.done ? 0 : 99999, 818);
-        text(find(bw, en ? "TouchRF_ContTE" : "TouchRF_ContT", 0), dm_str(rb(), m.done ? "dmRiftCapGuard" : "dmRiftCapCont"));
-        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : "dmRiftTitleRun"));
+        rect(find(bw, "TouchRF_Abandon", 0), m.done ? 99999 : 0, 818); rect(find(bw, "TouchRF_Resel", 0), m.done && m.menu != 3 ? 0 : 99999, 818);
+        text(find(bw, en ? "TouchRF_ContTE" : "TouchRF_ContT", 0), dm_str(rb(), m.menu == 3 ? "dmRiftCapCancel" : m.done ? "dmRiftCapGuard" : "dmRiftCapCont"));
+        rect(find(bw, "TouchRF_Confirm", 0), m.menu == 3 ? 0 : 99999, 818);
+        rect(find(bw, "TouchRF_Cancel", 0), m.menu == 3 ? 0 : 99999, 1155);
+        rect(find(bw, "TouchRF_Cont", 0), m.menu == 3 ? 99999 : 0, 1155);
+        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.menu == 3 ? "dmRiftTitleConfirm" : m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : "dmRiftTitleRun"));
         if (m.done) { text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftGuardDown")); text(find(bw, "TouchRF_ChLeft", 0), ""); text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), m.inc ? "dmRiftNextOpen" : "dmRiftRetryOpen")); text(find(bw, "TouchRF_ChProg", 0), ""); text(find(bw, "TouchRF_ChNoteL", 0), dm_str(rb(), m.inc ? "dmRiftSaved" : "dmRiftNotCounted")); }
         else { int s = m.secs_left; text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftTimeLeft")); snprintf(t, sizeof t, "%d:%02d", s / 60, s % 60); text(find(bw, "TouchRF_ChLeft", 0), t);
             text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), "dmRiftProgress")); snprintf(t, sizeof t, "%d%%", (int)(m.progress * 100)); text(find(bw, "TouchRF_ChProg", 0), t); text(find(bw, "TouchRF_ChNoteL", 0), ""); }

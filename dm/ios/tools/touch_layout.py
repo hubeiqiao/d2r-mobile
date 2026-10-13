@@ -848,6 +848,8 @@ def _rift_board():
             # When this level is completed the secondary button becomes "Reselect level" (progress is already recorded, so "Abandon" reads wrong). The host cannot
             # change button text, so a button is placed at the same position and the host moves it in and out according to "has the Guardian been defeated"
             _rf_btn('TouchRF_Resel', 99999, 818, 'FrontEnd/HD/Final/FrontEnd_ButtonMed', _RF_BTN, 1.064, '@dmRiftBtnResel'),
+            _rf_btn('TouchRF_Confirm', 99999, 818, 'FrontEnd/HD/Final/FrontEnd_ButtonMed', _RF_BTN, 1.064, '@dmRiftBtnConfirm'),
+            _rf_btn('TouchRF_Cancel', 99999, 1155, 'FrontEnd/HD/Final/FrontEnd_ButtonMed', _RF_BTN, 1.064, '@dmRiftBtnCancel'),
             _rf_key('TouchRF_KeyA2', 'ButtonRight', 1155), _rf_key('TouchRF_KeyX', 'ButtonTop', 818)]
     right = [_kb_text('TouchRF_MsT', 530, RF_T0, 500, 60, '$FontColorGoldYellow', '$MediumFontSize', 'left', '@dmRiftMsT'), _rf_div('TouchRF_DivR', 530, 62, 1157),
              _kb_text('TouchRF_MsN', 1030, RF_T0, 657, 60, '$FontColorMoreLightGray', '$SmallFontSize', 'right', '@dmRiftMsN'),

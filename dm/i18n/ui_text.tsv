@@ -207,8 +207,8 @@ dmRiftPtsGot	最高第 %d 层：获得 %d 技能点、%d 属性点	Level %d: +%d
 dmSkillCapLocked	打通任意一层秘境后解锁技能等级上限	Clear any Rift level to unlock the skill level cap	技能树里对已到 20 级的技能再加点、而这个角色还没打通过秘境时的系统提示（dm_actions.c）；英文：Rift / level 同秘境其它提示
 dmRiftPtsHeld	未分配的点数太多，剩余奖励在用掉后补发	Spend your points to get the rest	秘境系统提示（dm_rift.c 通关点数）：未用点数顶到上限，剩下的等用掉后补发；英文按原意写
 dmRiftTierN	第 %d 层	Level %d	秘境层号（面板大字、积分牌、顶部条共用）；英文：层数叫 level：暗黑 3 官方 2.1.0 补丁说明（news.blizzard.com/en-us/article/14569138）「Greater Rift level」；暗黑 3 方尖碑选层下拉原文「Level 12」「Level 25 (Torment 6)」（游戏内截图 diablo.fandom.com/wiki/File:HP2AA65JO17Q1434998338415.jpg）；暗黑 3 结算屏与排行榜写 Tier（「TIER 31 COMPLETED」、列名 Tier），选层写 Level；同一局里用两个词更乱，全用 Level，未分场合
-dmRiftCapResel	换一层再打	Choose another level	大秘境面板（dm_rift_ui.c）已完成页上组说明；英文：拟
-dmRiftCapGuard	回到守护者处	Return to Guardian	大秘境面板（dm_rift_ui.c）已完成页下组说明；英文：拟
+dmRiftCapResel	选择新场层数	Select next run	大秘境面板（dm_rift_ui.c）已完成页上组说明；英文：拟
+dmRiftCapGuard	返回本场拾取奖励	Return for loot	大秘境面板（dm_rift_ui.c）已完成页下组说明；英文：拟
 dmRiftCapVoid	本层作废	Run will be lost	大秘境面板（dm_rift_ui.c）；英文：拟
 dmRiftCapVoidPad	按住 X，本层放弃	Hold X to quit level	大秘境面板进行中页「放弃」钮上方的说明，手柄模式用（dm_rift_ui.c）；英文：拟（按钮叫 Quit）
 dmRiftTitleDone	本层已完成	Rift Complete	大秘境面板（dm_rift_ui.c）；英文：见 dmRiftSayDoneBoth；暗黑 3 结算窗口标题原文「GREATER RIFT COMPLETE」/ Urshi 面板标题「RIFT COMPLETE」（游戏内截图 diablo.fandom.com/wiki/File:New_Completion_Rift.jpg、File:UrshiMenu.jpg）
@@ -284,7 +284,7 @@ dmRiftTime	限时	Time Limit	大秘境面板（touch_layout.py _rift_panel）；
 dmRiftGamT	安亚赌博	Gamble at Anya	大秘境面板（touch_layout.py _rift_panel）；英文用原版词 ui[gamble]「gamble」
 dmRiftBtnStart	开始	Enter Rift	大秘境面板（touch_layout.py _rift_panel）；英文：拟；方尖碑面板按钮原文没查到；暗黑 3 方尖碑面板的进入按钮原文为 ACCEPT；我们的面板没有它那句前置说明，单一个 Accept 不知接受什么，未采用，留 Enter Rift（看过认可）
 dmRiftBtnAbandon	放弃	Quit	大秘境面板（touch_layout.py _rift_panel）；英文用 Quit（「放弃用 quit 不是 abandon」）
-dmRiftBtnResel	重新选层	Select Level	大秘境面板（touch_layout.py _rift_panel）已完成页上组按钮；英文与选层页标题同词
+dmRiftBtnResel	开始新一场	New Run	大秘境面板（touch_layout.py _rift_panel）已完成页上组按钮；英文与选层页标题同词
 dmRiftCapCont	回到离开时的位置	Resume your run	大秘境面板（touch_layout.py _rift_panel）；英文：拟
 dmRiftBtnCont	继续	Continue	大秘境面板（touch_layout.py _rift_panel）
 dmRiftMsT	首通奖励	First Clear	大秘境面板（touch_layout.py _rift_panel）
@@ -316,3 +316,8 @@ dmAppFullscreen	全屏	Toggle Full Screen	显示菜单的全屏项
 dmAppMenuHelp	帮助	Help	帮助菜单
 dmAppKeysTitle	键盘与手柄按键对照	Keyboard and Controller Buttons	帮助菜单的键位对照项，也是那一页的标题
 dmAppKeysText	界面上的按键提示是手柄字母，键盘这样对应：\n\n确认（A）：空格 或 J　　返回（B）：Esc 或 K\n回车：确认；页面底部有「＋」提示时是 ＋（如起名后的「接受」）\n＋（菜单 / 新角色）：= 键　　−（地图）：Tab\n移动：W A S D（左摇杆）　　十字键：方向键\nX：U　　Y：I　　L：Q　　R：E　　ZL：Z　　ZR：C\n按左摇杆：F　　按右摇杆：G\n\n鼠标：左键点目标、界面、底部的按键提示和技能 / 药水格；右键 = 返回；滚轮滚列表。\n接上手柄可以直接用。这一页以后在「帮助」菜单里。	On-screen button hints use controller letters. Keyboard mapping:\n\nConfirm (A): Space or J    Back (B): Esc or K\nReturn: confirm; acts as + when the page shows a + hint (e.g. Accept after naming)\n+ (menu / new character): = key    − (map): Tab\nMove: W A S D (left stick)    D-pad: arrow keys\nX: U    Y: I    L: Q    R: E    ZL: Z    ZR: C\nPress left stick: F    Press right stick: G\n\nMouse: left click targets, the interface, the button hints at the bottom and skill / potion slots; right click = back; wheel scrolls lists.\nA connected controller works right away. This page stays in the Help menu.	键位对照正文（首次启动弹一次）
+dmRiftBtnConfirm	确认开启新场	Start New	#25 关闭旧场的独立确认按钮
+dmRiftBtnCancel	取消	Cancel	#25 确认页取消按钮
+dmRiftCapConfirm	未拾取奖励将无法返回领取	Old loot unavailable	#25 关闭旧场警告
+dmRiftCapCancel	保留旧场，返回选择	Keep old run	#25 取消说明
+dmRiftTitleConfirm	关闭旧场并开启新场？	Close Old Run?	#25 确认页标题
