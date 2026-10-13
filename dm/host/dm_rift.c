@@ -34,6 +34,7 @@
 #include "dm_doorspot.h"
 #include "dm_i18n.h"
 #include "dm_cursor.h"
+#include "dm_custom.h"
 #include "hle.h"
 #include "dm.h"
 #include <stdarg.h>
@@ -446,6 +447,27 @@ static void pet_file_save(void) { char p[1200], q[1220]; if (!pet_path(p, sizeof
     snprintf(q, sizeof q, "%s.tmp", p); FILE *f = fopen(q, "w"); if (!f) { LOG("【红】秘境：随从基数侧文件写不进 %s", q); return; }
     for (int i = 0; i < g_pfn; i++) fprintf(f, "%u %d %d\n", g_pf[i].cls, g_pf[i].base, g_pf[i].boosted);
     if (fclose(f) || rename(q, p)) LOG("【红】秘境：随从基数侧文件改名失败 %s", p); }
+// #23 诊断：每局 / 每层 / 每次状态变化最多 64 条；限制额外属性读取与日志量，不改生命计算或存档。
+// #23 diagnostics: at most 64 records per game / floor / state change; bound extra stat reads and log volume without changing life calculations or saves.
+static int pet_trace_allow(uint64_t G) {
+    static uint64_t game; static int seq = -1, state = -1; static unsigned n;
+    int sq = atomic_load(&g_run_seq), st = atomic_load(&K.st);
+    if (G != game || sq != seq || st != state) { game = G; seq = sq; state = st; n = 0; }
+    if (n < 64) { n++; return 1; }
+    if (n == 64) { n++; LOG("秘境：pet-life trace suppressed run=%d state=%d tier=%d limit=64", sq, st, K.tier); }
+    return 0;
+}
+static void pet_trace_line(uint32_t t, uint32_t id, uint32_t ty, uint32_t cls, uint32_t mode,
+                           const char *reason, int level, int base0, int last0, int mult0,
+                           int cur, int hp, int base, int mult, long long requested, int want,
+                           int hp_write, int max_read, int hp_read, int auto_buff) {
+    // 所有生命字段都是 ×256 原始定点值；requested 是封顶前目标，read 是写入后立即读回，不能当成下一拍的原版重算。
+    // All life fields are raw x256 fixed-point values; requested is the pre-cap target, read is immediate readback after writing, not the next tick's native recalculation.
+    LOG("秘境：pet-life run=%d state=%d tier=%d tick=%u id=%u type=%u class=%u mode=%u reason=%s level=%d prev_base=%d prev_last=%d prev_mult=%d observed_max=%d observed_hp=%d base=%d mult=%d requested=%lld write_max=%d write_hp=%d read_max=%d read_hp=%d capped=%d auto_buff=%d commits=%llu",
+        atomic_load(&g_run_seq), atomic_load(&K.st), K.tier, t, id, ty, cls, mode, reason, level,
+        base0, last0, mult0, cur, hp, base, mult, requested, want, hp_write, max_read, hp_read,
+        requested > 0x7fffff00LL, auto_buff, (unsigned long long)dm_fs_commit_count());
+}
 static void pet_hp_pump(uint64_t G, uint64_t player, uint32_t t) {
     static int dump = -1; if (dump < 0) dump = getenv("DM_RIFT_TEST_PETDUMP") != NULL;
     if (!K.who[0]) return;
@@ -455,7 +477,7 @@ static void pet_hp_pump(uint64_t G, uint64_t player, uint32_t t) {
     static int was_on = -1; if (t % 10 && on == was_on) return; was_on = on;
     if (strcmp(g_pf_who, K.who)) pet_file_load();
     if (!top && !dump && !g_pfn) return;   /* 开关关、侧文件里也没有要设回的：一个字不动 | switch off and nothing in the sidecar file to set back either: touch nothing at all */
-    static struct { uint32_t id, cls; int base, last; } tb[64]; static unsigned tw;
+    static struct { uint32_t id, cls; int base, last, mult; } tb[64]; static unsigned tw;
     int mult = on ? 1000 + (int)((long long)(top - 100) * 10 * (tier - f) / (100 - f)) : 1000, act = top || g_pfn;
     uint64_t pd = rd(player + 0x10), lst = pd ? rd(pd + 0x98) : 0, arr = lst ? rd(lst) : 0, T = tables(G); uint32_t nt = T ? *(uint32_t *)(uintptr_t)(T + 0x1300) : 0; if (!arr || nt > 64) return;
     char line[700]; int lo = 0; line[0] = 0;
@@ -463,18 +485,24 @@ static void pet_hp_pump(uint64_t G, uint64_t player, uint32_t t) {
     for (uint32_t ty = 1; ty < nt; ty++) { if (ty == 7) continue;   /* 7 = 佣兵，不算 | 7 = mercenary, not counted */
         int guard = 0; for (uint64_t nd = rd(arr + (uint64_t)ty * 0x20); nd && guard < 64; nd = rd(nd + 0x18), guard++) {
             uint32_t id = *(uint32_t *)(uintptr_t)(nd + 4); uint64_t u = find_unit(G, 1, id); if (!u) continue; uint32_t md = *(uint32_t *)(uintptr_t)(u + 0xc); if (md == 0 || md == 12) continue;
-            int cur = gs(u, 7); uint32_t cls = *(uint32_t *)(uintptr_t)(u + 4); if (cur <= 0) continue;
+            int cur = gs(u, 7); uint32_t cls = *(uint32_t *)(uintptr_t)(u + 4); if (cur <= 0) { if (act && pet_trace_allow(G)) LOG("秘境：pet-life invalid run=%d state=%d tier=%d tick=%u id=%u type=%u class=%u mode=%u observed_max=%d", atomic_load(&g_run_seq), atomic_load(&K.st), K.tier, t, id, ty, cls, md, cur); continue; }
             if (dump && t % 125 == 0 && lo < (int)sizeof line - 80) lo += snprintf(line + lo, sizeof line - lo, " [类型 %u 类号 %u id %u 等级 %d 生命上限 %d]", ty, cls, id, gs(u, 12), cur >> 8);
             if (!act) continue;
             int k = -1; for (int i = 0; i < 64; i++) if (tb[i].id == id && tb[i].cls == cls) { k = i; break; }
-            if (k < 0) { k = (int)(tw++ % 64); tb[k].id = id; tb[k].cls = cls; tb[k].base = cur; tb[k].last = cur;
-                for (int i = 0; i < g_pfn; i++) if (g_pf[i].cls == cls && g_pf[i].boosted == cur) { tb[k].base = g_pf[i].base; LOG("秘境：随从 id %u（类号 %u）读档带着放大后的生命上限 %d，基数按侧文件取 %d", id, cls, cur >> 8, tb[k].base >> 8); break; } }
+            int base0 = k < 0 ? 0 : tb[k].base, last0 = k < 0 ? 0 : tb[k].last, mult0 = k < 0 ? 0 : tb[k].mult;
+            const char *reason = k < 0 ? "new" : cur != tb[k].last ? "rebase" : on ? "scale" : "restore";
+            int event = k < 0 || cur != tb[k].last;
+            if (k < 0) { k = (int)(tw++ % 64); tb[k].id = id; tb[k].cls = cls; tb[k].base = cur; tb[k].last = cur; tb[k].mult = 1000;
+                for (int i = 0; i < g_pfn; i++) if (g_pf[i].cls == cls && g_pf[i].boosted == cur) { tb[k].base = g_pf[i].base; reason = "sidecar"; LOG("秘境：随从 id %u（类号 %u）读档带着放大后的生命上限 %d，基数按侧文件取 %d", id, cls, cur >> 8, tb[k].base >> 8); break; } }
             else if (cur != tb[k].last) { tb[k].base = cur; tb[k].last = cur; }   /* 游戏自己改过：新值当基数 | changed by the game itself: the new value becomes the base */
-            long long want = (long long)tb[k].base * mult / 1000; if (want > 0x7fffff00LL) want = 0x7fffff00LL;
-            if ((int)want != cur) { int hp = gs(u, 6); long long nh = (long long)hp * want / cur; if (nh < 256) nh = 256; if (nh > want) nh = want;
-                ss(u, 7, (int)want); ss(u, 6, (int)nh);
+            long long requested = (long long)tb[k].base * mult / 1000, want = requested; if (want > 0x7fffff00LL) want = 0x7fffff00LL;
+            int trace = (event || (int)want != cur || (dump && t % 125 == 0)) && pet_trace_allow(G);
+            int hp0 = trace ? gs(u, 6) : 0, hp_write = hp0;
+            if ((int)want != cur) { int hp = trace ? hp0 : gs(u, 6); long long nh = (long long)hp * want / cur; if (nh < 256) nh = 256; if (nh > want) nh = want;
+                ss(u, 7, (int)want); ss(u, 6, (int)nh); hp_write = (int)nh;
                 LOG("秘境：随从 id %u（宠物类型 %u，类号 %u）生命上限 %d → %lld（基数 %d，第 %d 层 ×%d.%02d）", id, ty, cls, cur >> 8, want >> 8, tb[k].base >> 8, K.tier, mult / 1000, mult % 1000 / 10); }
-            tb[k].last = (int)want;
+            if (trace) pet_trace_line(t, id, ty, cls, md, reason, gs(u, 12), base0, last0, mult0, cur, hp0, tb[k].base, mult, requested, (int)want, hp_write, gs(u, 7), gs(u, 6), dm_custom_get("auto_buff"));
+            tb[k].last = (int)want; tb[k].mult = mult;
             if (tb[k].last != tb[k].base && nn < 16) { now[nn].cls = cls; now[nn].base = tb[k].base; now[nn].boosted = tb[k].last; nn++; } } }
     // 侧文件 = 现在放大着的 + 刚设回基数的。设回基数的记录不当场删，留到其后第 2 次存档提交：那一刻若正有一次存盘「已序列化、还没写盘」，
     // 它带的是放大后的值，记录先没了的话读档会把放大后的值当基数、下次再乘一遍（角色档由另一条线程写，同编年史仓库的「第二次提交起」规则）
