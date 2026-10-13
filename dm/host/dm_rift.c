@@ -288,6 +288,10 @@ int dm_rift_hud(dm_rift_hud_t *o) {
     int el = K.t0_ns ? (int)((now - K.t0_ns) / 1000000000ull) : 0; int need = atomic_load(&K.need);
     o->tier = K.tier; o->progress = need > 0 ? (float)atomic_load(&K.score) / need : 0; if (o->progress > 1) o->progress = 1;
     o->secs_left = st == ST_DONE ? g_left_done : RIFT_SECS - el; o->done = st == ST_DONE; o->guardian = K.guard != 0 && !atomic_load(&K.guard_dead); o->inc = K.inc;
+    // 超时仍进行中，与守护者死亡分开；读数不改游戏状态。
+    // Overtime remains running, distinct from guardian death; readout never changes game state.
+    o->overtime = o->done ? !o->inc : K.t0_ns && o->secs_left <= 0;
+    if (o->secs_left < 0) o->secs_left = 0;
     return 1;
 }
 
@@ -985,6 +989,7 @@ static void menu_fill(dm_rift_menu_t *o, int m) {
     uint64_t now = guest_ns();
     int need = atomic_load(&K.need); o->menu = m; o->best = R.best; o->unlock = R.unlock < 1 ? 1 : R.unlock; o->def = R.tier; o->ms = R.ms; o->clvl = atomic_load(&M.clvl);
     o->tier = K.tier; o->done = atomic_load(&K.st) == ST_DONE; o->inc = K.inc; o->secs_left = o->done ? g_left_done : K.t0_ns ? RIFT_SECS - (int)((now - K.t0_ns) / 1000000000ull) : RIFT_SECS; if (o->secs_left < 0) o->secs_left = 0;
+    o->overtime = o->done ? !o->inc : atomic_load(&K.st) == ST_RUN && K.t0_ns && o->secs_left == 0;
     o->progress = need > 0 ? (float)atomic_load(&K.score) / need : 0; if (o->progress > 1) o->progress = 1;
 }
 int dm_rift_menu(dm_rift_menu_t *o) { int m = atomic_load(&M.menu); if (m == MENU_NONE) return 0; menu_fill(o, m); return 1; }

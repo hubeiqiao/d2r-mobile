@@ -28,6 +28,7 @@ run: \
 	$(B)/t_oe \
 	$(B)/t_padmap \
 	$(B)/t_rift_clock \
+	$(B)/t_rift_overtime \
 	$(B)/t_romfs_validate \
 	$(B)/t_rwlv \
 	$(B)/t_swkbd \
@@ -44,6 +45,7 @@ run: \
 	python3 ../../i18n/scan_literals.py
 	$(B)/t_thread_leak
 	$(B)/t_rift_clock
+	$(B)/t_rift_overtime
 	$(B)/t_textbox
 	$(B)/t_rwlv
 	$(B)/t_touch
@@ -144,3 +146,6 @@ $(B)/t_rift_clock: t_rift_clock.c ../dm_rift.c ../dm_rift.h ../hle_os.c ../hle.h
 	clang -O1 -Wall -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_clock.c ../hle_os.c
 $(B)/t_thread_leak: t_thread_leak.c ../thread.c ../dm.h | $(B)
 	clang -O1 -Wall -Wno-unused-function -I.. -I../../ios/Sources -o $@ t_thread_leak.c
+
+$(B)/t_rift_overtime: t_rift_overtime.c ../dm_rift.c ../dm_rift.h ../hle.h ../dm.h | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_overtime.c

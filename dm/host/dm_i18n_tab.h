@@ -201,7 +201,7 @@ static const struct { const char *k, *zh, *en; } k_dm_i18n[] = {
     { "dmRiftSayErr", "秘境出错了，这次没开", "The Rift could not be opened" },
     { "dmRiftSayStart", "第 %d 层开始，限时 15 分钟", "Level %d: 15 minute time limit" },
     { "dmRiftSayGift", "赠彩虹刻面一颗，已掉在脚下", "A Rainbow Facet has dropped" },
-    { "dmRiftSayTimeout", "时间到：本层未过关，守护者仍会掉落", "Time's up: level not cleared" },
+    { "dmRiftSayTimeout", "时间到：本层未过关，守护者仍会掉落", "Time's up; continue for loot" },
     { "dmRiftSayGuardian", "进度已满：守护者现身！", "The Rift Guardian appears!" },
     { "dmElyToaGround", "背包已满，赦免之证掉在脚边", "Inventory full: Token of Absolution dropped" },
     { "dmMercSlotLocked", "通关地狱后打通秘境10层解锁", "Clear Greater Rift Level 10 to unlock" },
@@ -318,4 +318,7 @@ static const struct { const char *k, *zh, *en; } k_dm_i18n[] = {
     { "dmAppMenuHelp", "帮助", "Help" },
     { "dmAppKeysTitle", "键盘与手柄按键对照", "Keyboard and Controller Buttons" },
     { "dmAppKeysText", "用键盘时，界面上的按键提示显示的就是键盘上的键；接上手柄按一下，提示换成手柄字母。\n\n确认：J（空格也可以）　　返回：K（Esc 也可以）\n回车也可以确认；页面底部有「=」提示时回车当 =（如起名后的「接受」）\n=：菜单 / 新角色　　Tab：地图\n移动：W A S D　　十字键：方向键\nU I Q E Z C：手柄的 X Y L R ZL ZR\nF：按左摇杆　　G：按右摇杆\n\n鼠标：左键点空地走过去，按住不放一直朝光标走；点目标、界面、底部的按键提示和技能 / 药水格；右键 = 返回；滚轮滚列表。\n接上手柄可以直接用。这一页以后在「帮助」菜单里。", "With a keyboard, on-screen button hints show keyboard keys; press anything on a connected controller and they switch to controller letters.\n\nConfirm: J (Space also works)    Back: K (Esc also works)\nReturn also confirms; acts as = when the page shows an = hint (e.g. Accept after naming)\n=: menu / new character    Tab: map\nMove: W A S D    D-pad: arrow keys\nU I Q E Z C: controller X Y L R ZL ZR\nF: press left stick    G: press right stick\n\nMouse: left click the ground to walk there, hold to keep walking toward the cursor; click targets, the interface, the button hints at the bottom and skill / potion slots; right click = back; wheel scrolls lists.\nA connected controller works right away. This page stays in the Help menu." },
+    { "dmRiftHudOvertimeLoot", "继续击杀可拾取，不计通关", "Continue for loot; no clear" },
+    { "dmRiftOvertimeContinue", "继续完成，仍可拾取掉落", "Continue to collect loot" },
+    { "dmRiftOvertimeOptions", "不计通关", "No clear" },
 };

@@ -184,11 +184,11 @@ void dm_rift_ui_pump(void) {
         // uncompleted page = "this level is void / Abandon" and "return to the position at the time of leaving / Continue". "Reselect level" is a separate
         // button at the same position as "Abandon", moved in and out (the host cannot write button text)
         rect(find(bw, "TouchRF_Abandon", 0), m.done ? 99999 : 0, 818); rect(find(bw, "TouchRF_Resel", 0), m.done ? 0 : 99999, 818);
-        text(find(bw, en ? "TouchRF_ContTE" : "TouchRF_ContT", 0), dm_str(rb(), m.done ? "dmRiftCapGuard" : "dmRiftCapCont"));
-        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : "dmRiftTitleRun"));
+        text(find(bw, en ? "TouchRF_ContTE" : "TouchRF_ContT", 0), dm_str(rb(), m.done ? "dmRiftCapGuard" : m.overtime ? "dmRiftOvertimeContinue" : "dmRiftCapCont"));
+        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : m.overtime ? "dmRiftTitleLate" : "dmRiftTitleRun"));
         if (m.done) { text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftGuardDown")); text(find(bw, "TouchRF_ChLeft", 0), ""); text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), m.inc ? "dmRiftNextOpen" : "dmRiftRetryOpen")); text(find(bw, "TouchRF_ChProg", 0), ""); text(find(bw, "TouchRF_ChNoteL", 0), dm_str(rb(), m.inc ? "dmRiftSaved" : "dmRiftNotCounted")); }
         else { int s = m.secs_left; text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftTimeLeft")); snprintf(t, sizeof t, "%d:%02d", s / 60, s % 60); text(find(bw, "TouchRF_ChLeft", 0), t);
-            text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), "dmRiftProgress")); snprintf(t, sizeof t, "%d%%", (int)(m.progress * 100)); text(find(bw, "TouchRF_ChProg", 0), t); text(find(bw, "TouchRF_ChNoteL", 0), ""); }
+            text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), "dmRiftProgress")); snprintf(t, sizeof t, "%d%%", (int)(m.progress * 100)); text(find(bw, "TouchRF_ChProg", 0), t); text(find(bw, "TouchRF_ChNoteL", 0), m.overtime ? dm_str(rb(), "dmRiftOvertimeOptions") : ""); }
     } else {
         snprintf(t, sizeof t, "%d", g_sel); text(find(bw, "TouchRF_Num", 0), t);
         btn_grey(find(bw, "TouchRF_M1", 0), g_sel <= 1); btn_grey(find(bw, "TouchRF_M10", 0), g_sel <= 1); btn_grey(find(bw, "TouchRF_P1", 0), g_sel >= m.unlock); btn_grey(find(bw, "TouchRF_P10", 0), g_sel >= m.unlock);   // 到边界置灰 | Greyed out at the limits
