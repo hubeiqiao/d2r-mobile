@@ -328,4 +328,10 @@ static const struct { const char *k, *zh, *en; } k_dm_i18n[] = {
     { "dmRiftCapConfirm", "未拾取奖励将无法返回领取", "Old loot unavailable" },
     { "dmRiftCapCancel", "保留旧场，返回选择", "Keep old run" },
     { "dmRiftTitleConfirm", "关闭旧场并开启新场？", "Close Old Run?" },
+    { "dmRiftRewardsPending", "奖励结算中，请稍候", "Rewards pending" },
+    { "dmRiftRewardChoice", "目标碎片 %s ×%d", "Shard %s x%d" },
+    { "dmRiftRewardRandom", "随机", "Random" },
+    { "dmRiftRewardPrev", "上一个目标", "Prev target" },
+    { "dmRiftRewardNext", "下一个目标", "Next target" },
+    { "dmRiftRewardResult", "已创建 %d/%d，异常 %d；请拾取", "Created %d/%d; errors %d; collect" },
 };

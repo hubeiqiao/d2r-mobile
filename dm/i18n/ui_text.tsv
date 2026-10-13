@@ -326,3 +326,9 @@ dmRiftBtnCancel	取消	Cancel	#25 确认页取消按钮
 dmRiftCapConfirm	未拾取奖励将无法返回领取	Old loot unavailable	#25 关闭旧场警告
 dmRiftCapCancel	保留旧场，返回选择	Keep old run	#25 取消说明
 dmRiftTitleConfirm	关闭旧场并开启新场？	Close Old Run?	#25 确认页标题
+dmRiftRewardsPending	奖励结算中，请稍候	Rewards pending	整合大秘境确认页；奖励队列未处理完不得开新场
+dmRiftRewardChoice	目标碎片 %s ×%d	Shard %s x%d	实验性重复材料奖励的选层预览
+dmRiftRewardRandom	随机	Random	重复材料奖励的随机类别
+dmRiftRewardPrev	上一个目标	Prev target	实验奖励目标按钮
+dmRiftRewardNext	下一个目标	Next target	实验奖励目标按钮
+dmRiftRewardResult	已创建 %d/%d，异常 %d；请拾取	Created %d/%d; errors %d; collect	结算奖励创建结果，不代表已拾取或已保存

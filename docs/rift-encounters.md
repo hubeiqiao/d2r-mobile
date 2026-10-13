@@ -1,5 +1,8 @@
 # Rift encounter profiles (#26)
 
+Integration supersedes the original prototype defaults: classic is default; explicit1 opts in. Latest coverage/limitations: [rift-endgame-integration.md](rift-endgame-integration.md).
+
+
 This PR implements encounter variation, not the full Diablo III monster-set system. The reference is Blizzard's historical Season 26 Orek's Dream (curated maps/compositions), 2.4.3 distribution changes, and 2.7.6 map/monster-set/density updates:
 - https://news.blizzard.com/en-gb/article/23785083/season-26-the-fall-of-the-nephalem-patch-2-7-3-preview-blog
 - https://news.blizzard.com/en-us/article/20426802/patch-2-4-3-now-live

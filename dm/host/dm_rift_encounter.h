@@ -28,9 +28,10 @@ static inline int rf_scaled(int base, int mult, int cap) {
 // 只重排调用方已筛出的可用地图：群怪/梦境偏两张野外，猎场偏两张迷宫，再洗牌顺序。
 // Compose only caller-filtered available maps: Swarm/Dream favor two wilderness maps, Hunt favors two mazes, then shuffle order.
 static inline int rf_route_pick(int profile, const int *open, int no, const int *maze, int nm, int (*draw)(int), int out[3]) {
-    if (!open || !maze || !draw || !out || no < 1 || nm < 2) return 0;
+    if (!open || !maze || !draw || !out || no < 1 || nm < 1) return 0;
     int n = profile == RF_BALANCED ? 2 + draw(2) : 3;
-    int o = (profile == RF_SWARM || profile == RF_DREAM) && no >= 2 ? 2 : 1;
+    int o = n == 3 && ((profile == RF_SWARM || profile == RF_DREAM) || nm < 2) && no >= 2 ? 2 : 1;
+    if (o == 1 && nm < 2) n = 2;
     int a = draw(no); out[0] = open[a];
     if (o == 2) { int b = draw(no - 1); if (b >= a) b++; out[1] = open[b]; out[2] = maze[draw(nm)]; }
     else { int b = draw(nm); out[1] = maze[b]; if (n == 3) { int c = draw(nm - 1); if (c >= b) c++; out[2] = maze[c]; } }

@@ -827,6 +827,11 @@ def _rift_board():
     # Four rows (row pitch 64, same as 「本层」(This Level)): gray label on the left (unique / set / unique after clear / set after clear) + right-aligned value (one widget each in unique gold and set green; the host fills one of them).
     # Two rows of full sentences and two side-by-side columns both exceed the column width (Mac screenshot: truncated / overlapping each other); five rows with a subtitle are too cramped on the real device (row pitch 56, last row touching 「开始」(Enter Rift))
     for n in range(4): sel += [_kb_text('TouchRF_Gam%dL' % n, 0, 842 + 64 * n, 300, 56, '$FontColorMoreLightGray', '$MediumFontSize', 'left'), _kb_text('TouchRF_Gam%dLE' % n, 99999, 842 + 64 * n, 330, 56, '$FontColorMoreLightGray', RF_EN_PT, 'left'), _kb_text('TouchRF_Gam%dU' % n, 230, 842 + 64 * n, 250, 56, '$FontColorGoldYellow', '$MediumFontSize', 'right'), _kb_text('TouchRF_Gam%dS' % n, 230, 842 + 64 * n, 250, 56, '$FontColorGreen', '$MediumFontSize', 'right')]
+    # 目标奖励区与赌博预览互斥，只有显式开启奖励试验才显示；左右按钮不占用层数箭头。
+    # Reward target and gambling previews are mutually exclusive; only explicit reward experiments show this area, without taking over tier arrows.
+    sel += [_kb_text('TouchRF_RewardChoice', 99999, 760, 500, 64, '$FontColorGoldYellow', RF_EN_PT, 'center'),
+            _rf_btn('TouchRF_RewardPrev', 99999, 842, 'FrontEnd/HD/Final/FrontEnd_ButtonSmall', _RF_BTN, RF_X10_K, '@dmRiftRewardPrev', 40),
+            _rf_btn('TouchRF_RewardNext', 99999, 842, 'FrontEnd/HD/Final/FrontEnd_ButtonSmall', _RF_BTN, RF_X10_K, '@dmRiftRewardNext', 40)]
     sel += [_rf_btn('TouchRF_Start', 0, 1155, 'FrontEnd/HD/Final/FrontEnd_ButtonMed', _RF_BTN, 1.064, '@dmRiftBtnStart'), _rf_key('TouchRF_KeyA', 'ButtonRight', 1155)]
     # 进行中页：层数大字 96–204 → 「本层」小节（标题 332、金线 394、三行 414 / 478 / 542，与选层页同位）→ 放弃一组（说明 746、按钮 818–943）→ 继续一组贴底（说明 1083、按钮 1155，同「开始」）。
     # 信息—放弃—继续三段间距相等（各 140）；按钮上方的说明都是四到八个字的短句、居中（放弃那句与「本层」三行宿主按「守护者打倒没有」换说法）
@@ -836,6 +841,7 @@ def _rift_board():
            _kb_text('TouchRF_ChTier', 0, 96, 500, 108, '$FontColorLightGold', '$HugeFontSize', 'center'),
            _kb_text('TouchRF_ChInfT', 0, 332, 500, 60, '$FontColorGoldYellow', '$MediumFontSize', 'left', '@dmRiftInfT'), _rf_div('TouchRF_DivE', 0, 394)]
     for n, (k, lab) in enumerate((('ChLeft', '@dmRiftTimeLeft'), ('ChProg', '@dmRiftProgress'), ('ChNote', ''))): cho += _rf_kv(k, 414 + 64 * n, lab)
+    cho += [_kb_text('TouchRF_RewardResult', 99999, 630, 500, 80, '$FontColorGoldYellow', RF_EN_NOTE, 'center')]
     # 按钮上方两句说明的英文版控件（…E，字号 RF_EN_CAP，缺省在屏外；游戏语言不是中文时宿主换用，见 dm_rift_ui.c）：英文句子比中文宽，中号小字放不下
     # English version widgets for the two caption sentences above the buttons (...E, font size RF_EN_CAP, off screen by default; the host switches to them
     # when the game language is not Chinese, see dm_rift_ui.c): English sentences are wider than Chinese and do not fit in the medium-size small text

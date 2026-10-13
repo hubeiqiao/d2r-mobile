@@ -16,6 +16,7 @@
 #include "dm.h"
 #include "dm_widget.h"
 #include "dm_rift.h"
+#include "dm_rift_reward.h"
 #include "dm_i18n.h"
 #include "dm_input.h"
 void dm_ui_send(const char *cat, const char *act, const char *arg);   // dm_cursor.c
@@ -75,6 +76,7 @@ void dm_rift_ui_on_uimsg(const char *cat, const char *act, const char *arg) {
     const char *k = arg + 8;
     if (!strcmp(k, "M1")) atomic_fetch_add(&g_step, -1); else if (!strcmp(k, "P1")) atomic_fetch_add(&g_step, 1);
     else if (!strcmp(k, "M10")) atomic_fetch_add(&g_step, -10); else if (!strcmp(k, "P10")) atomic_fetch_add(&g_step, 10);
+    else if (!strcmp(k, "RewardPrev")) atomic_store(&g_act, 7); else if (!strcmp(k, "RewardNext")) atomic_store(&g_act, 8);
     else if (!strcmp(k, "Start")) atomic_store(&g_act, 1); else if ((!strcmp(k, "Cont") || !strcmp(k, "Cancel"))) atomic_store(&g_act, 2); else if (!strcmp(k, "Abandon") || !strcmp(k, "Resel") || !strcmp(k, "Confirm")) atomic_store(&g_act, 3);   // 同位置的按钮按菜单状态分派；确认与取消各有独立控件 | Buttons sharing a position dispatch by menu state; confirm and cancel have distinct widgets
     atomic_store(&g_dirty, 1);
 }
@@ -134,14 +136,17 @@ void dm_rift_ui_pump(void) {
     // / Chronicle vault pages (dm_padmode_page_keys), still going through the same action numbers below:
     //   level selection page: left / right = −1 / +1, down / up = −10 / +10, A = start; in-progress / completed pages: A = continue, X = quit / reselect the
     //   level (quitting is irreversible, so it is not on A); B is not taken over = the original game closes the panel.
+    //   奖励试验的选层页额外收 L / R 切换目标，与方向键选层分开。
+    //   Reward-experiment selection also takes L / R to cycle targets, separately from tier direction keys.
     //   The key legend uses the original bottom button legend (action number 0 = A, 2 = X), with the same strings as on the buttons
     { int dm_padmode_current(void); uint64_t dm_padmode_page_keys(uint64_t); void dm_padmode_legend(int, const char *);
       { int kx = dm_padmode_current() ? 52 : 99999; rect(find(bw, "TouchRF_KeyA", 0), kx, 1181); rect(find(bw, "TouchRF_KeyA2", 0), kx, 1181); rect(find(bw, "TouchRF_KeyX", 0), kx, 844); }   // 按钮左端的原版键帽：只在手柄模式显示 | The original button glyph at the left end of the button: shown only in controller mode
       rect(find(panel(), "TouchCloseBox", 1), dm_padmode_current() ? 99999 : -998, 256);   // 右上角的触屏关闭 X（布局同编年史 _chronicle_touch）：手柄模式挪到屏外（按 B 关），触屏模式放回布局里的位置；同 dm_kills.c | the touch close X in the top-right corner (layout same as the Chronicle _chronicle_touch): moved off screen in controller mode (B closes), put back at its layout position in touch mode; same as dm_kills.c
       if (dm_padmode_current()) { int ch = m.menu != 1;
-          uint64_t ev = dm_padmode_page_keys(DM_BTN_A | DM_BTN_X | DM_BTN_LEFT | DM_BTN_RIGHT | DM_BTN_UP | DM_BTN_DOWN);
+          uint64_t ev = dm_padmode_page_keys(DM_BTN_A | DM_BTN_X | DM_BTN_LEFT | DM_BTN_RIGHT | DM_BTN_UP | DM_BTN_DOWN | (!ch && m.reward_mode ? DM_BTN_L | DM_BTN_R : 0));
           dm_padmode_legend(0, dm_str(b, m.menu == 3 ? "dmRiftBtnCancel" : ch ? "dmRiftBtnCont" : "dmRiftBtnStart")); if (ch) dm_padmode_legend(2, dm_str(b, m.menu == 3 ? "dmRiftBtnConfirm" : m.done ? "dmRiftBtnResel" : "dmRiftBtnAbandon"));
-          if (!ch) { int st = (ev & DM_BTN_LEFT ? -1 : 0) + (ev & DM_BTN_RIGHT ? 1 : 0) + (ev & DM_BTN_DOWN ? -10 : 0) + (ev & DM_BTN_UP ? 10 : 0); if (st) atomic_fetch_add(&g_step, st); if (ev & DM_BTN_A) atomic_store(&g_act, 1); }
+          if (!ch && m.reward_mode) { dm_padmode_legend(19, dm_str(b, "dmRiftRewardPrev")); dm_padmode_legend(20, dm_str(b, "dmRiftRewardNext")); }
+          if (!ch) { if (m.reward_mode) { if (ev & DM_BTN_L) atomic_store(&g_act, 7); else if (ev & DM_BTN_R) atomic_store(&g_act, 8); } int st = (ev & DM_BTN_LEFT ? -1 : 0) + (ev & DM_BTN_RIGHT ? 1 : 0) + (ev & DM_BTN_DOWN ? -10 : 0) + (ev & DM_BTN_UP ? 10 : 0); if (st) atomic_fetch_add(&g_step, st); if (ev & DM_BTN_A) atomic_store(&g_act, 1); }
           else if (ev & DM_BTN_A) atomic_store(&g_act, 2);
           else if (m.done) { if (ev & DM_BTN_X) atomic_store(&g_act, 3); }   // 已完成页 X 选新场层数，确认页 X 才确认；选层不丢旧场返回位置 | X selects a new tier on the completed page and confirms only on the confirmation page; selection preserves the old return location
           else { static uint64_t t0; uint64_t now_ns(void), dm_padmode_page_held(void), now = now_ns();   // 进行中页的 X = 放弃（本层作废、不可撤销）：按住 0.8 秒才算，防误按 | X on the in-progress page = quit (this level is forfeited, irreversible): it only counts after being held for 0.8 seconds, to prevent accidental presses
@@ -150,6 +155,7 @@ void dm_rift_ui_pump(void) {
     int a = atomic_exchange(&g_act, 0);
     if (g_sel < 0) g_sel = m.def < 1 ? 1 : m.def > m.unlock ? m.unlock : m.def;
     { int st = atomic_exchange(&g_step, 0); if (st) { g_sel += st; if (g_sel < 1) g_sel = 1; if (g_sel > m.unlock) g_sel = m.unlock; } }
+    if ((a == 7 || a == 8) && m.menu == 1 && m.reward_mode) { dm_rift_menu_reward_target(a == 7 ? -1 : 1); atomic_store(&g_dirty, 1); return; }
     if (a == 1 && m.menu == 1) { dm_rift_menu_start(g_sel); if (m.done) { atomic_store(&g_dirty, 1); return; } pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
     if (a == 2 && m.menu == 2) { dm_rift_menu_continue(); pause_set(0); dm_ui_send("PanelManager", "ClosePanel", "MessageLogPanel"); return; }
     if (a == 2 && m.menu == 3) { dm_rift_menu_select(); atomic_store(&g_dirty, 1); return; }
@@ -166,11 +172,19 @@ void dm_rift_ui_pump(void) {
     // when the game language is not Chinese it is used and the medium one is moved out, and the value column shifts right by another 16 (right edge 496,
     // leaving 34 before the list on the right at 530). Chinese: the medium label stays in place, the value column does not move, and the screen is unchanged
     int en = !dm_lang_zh();
+    // 奖励试验开启时占用赌博预览区；经典模式保留原布局，奖励按钮不改层数。
+    // Reward experiments use the gambling preview area; classic mode keeps its layout, and reward buttons never change the tier.
+    rect(find(bw, "TouchRF_GamT", 0), m.reward_mode ? 99999 : 0, 760); rect(find(bw, "TouchRF_DivC", 0), m.reward_mode ? 99999 : 0, 822);
+    rect(find(bw, "TouchRF_RewardChoice", 0), m.reward_mode ? 0 : 99999, 760);
+    rect(find(bw, "TouchRF_RewardPrev", 0), m.reward_mode ? 0 : 99999, 842);
+    rect(find(bw, "TouchRF_RewardNext", 0), m.reward_mode ? 258 : 99999, 842);
+    rect(find(bw, "TouchRF_RewardResult", 0), m.done && m.reward_mode ? 0 : 99999, 630);
+    if (m.done && m.reward_mode) { snprintf(t, sizeof t, dm_str(b, "dmRiftRewardResult"), m.reward_successes, m.reward_count, m.reward_failures); text(find(bw, "TouchRF_RewardResult", 0), t); }
     { int dx = en ? 16 : 0; static const char *kv[] = { "Range", "Best", "Str", "Lvl", "Time" };
       for (int i = 0; i < 5; i++) { int y = 414 + 64 * i; snprintf(t, sizeof t, "TouchRF_%s", kv[i]); rect(find(bw, t, 0), 230 + dx, y);
           snprintf(t, sizeof t, "TouchRF_%sL", kv[i]); rect(find(bw, t, 0), en ? 99999 : 0, y); snprintf(t, sizeof t, "TouchRF_%sLE", kv[i]); rect(find(bw, t, 0), en ? 0 : 99999, y + (en ? 4 : 0)); }
-      for (int i = 0; i < 4; i++) { int y = 842 + 64 * i; for (int c = 0; c < 2; c++) { snprintf(t, sizeof t, "TouchRF_Gam%d%c", i, "US"[c]); rect(find(bw, t, 0), 230 + dx - (c == 0 && i == g_pair ? 210 : 0), y); }   // 成对行：金字那个值左移 210，和绿字并排（170 时两个数几乎贴着，Mac 截图） | paired row: the gold value is shifted left by 210 to sit beside the green one (at 170 the two numbers almost touch, per Mac screenshot)
-          snprintf(t, sizeof t, "TouchRF_Gam%dL", i); rect(find(bw, t, 0), en ? 99999 : 0, y); snprintf(t, sizeof t, "TouchRF_Gam%dLE", i); rect(find(bw, t, 0), en ? 0 : 99999, y + (en ? 4 : 0)); } }
+      for (int i = 0; i < 4; i++) { int y = 842 + 64 * i; for (int c = 0; c < 2; c++) { snprintf(t, sizeof t, "TouchRF_Gam%d%c", i, "US"[c]); rect(find(bw, t, 0), m.reward_mode ? 99999 : 230 + dx - (c == 0 && i == g_pair ? 210 : 0), y); }   // 成对行：金字那个值左移 210，和绿字并排（170 时两个数几乎贴着，Mac 截图） | paired row: the gold value is shifted left by 210 to sit beside the green one (at 170 the two numbers almost touch, per Mac screenshot)
+          snprintf(t, sizeof t, "TouchRF_Gam%dL", i); rect(find(bw, t, 0), m.reward_mode || en ? 99999 : 0, y); snprintf(t, sizeof t, "TouchRF_Gam%dLE", i); rect(find(bw, t, 0), !m.reward_mode && en ? 0 : 99999, y + (en ? 4 : 0)); } }
     rect(find(bw, "TouchRF_MsN", 0), en ? 99999 : 1030, -24); rect(find(bw, "TouchRF_MsNE", 0), en ? 930 : 99999, -24);   // 右上那句：英文用更宽、字更小的那个控件；纵坐标 −24 = touch_layout.py 的 RF_T0（第一行小标题整体上抬） | the top-right sentence: English uses the wider widget with the smaller font; y coordinate −24 = RF_T0 in touch_layout.py (the first row of small headings is raised as a whole)
     rect(find(bw, "TouchRF_AbT", 0), en ? 99999 : 0, 746); rect(find(bw, "TouchRF_AbTE", 0), en ? 0 : 99999, 746); rect(find(bw, "TouchRF_ContT", 0), en ? 99999 : 0, 1083); rect(find(bw, "TouchRF_ContTE", 0), en ? 0 : 99999, 1083);
     if (m.menu != 1) {
@@ -191,12 +205,13 @@ void dm_rift_ui_pump(void) {
         rect(find(bw, "TouchRF_Confirm", 0), m.menu == 3 ? 0 : 99999, 818);
         rect(find(bw, "TouchRF_Cancel", 0), m.menu == 3 ? 0 : 99999, 1155);
         rect(find(bw, "TouchRF_Cont", 0), m.menu == 3 ? 99999 : 0, 1155);
-        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.menu == 3 ? "dmRiftTitleConfirm" : m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : "dmRiftTitleRun"));
+        text(find(bw, "TouchRF_ChNote", 0), ""); text(find(bw, "TouchRF_ChT", 0), dm_str(rb(), m.reward_pending ? "dmRiftRewardsPending" : m.menu == 3 ? "dmRiftTitleConfirm" : m.done ? (m.inc ? "dmRiftTitleDone" : "dmRiftTitleLate") : "dmRiftTitleRun"));
         if (m.done) { text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftGuardDown")); text(find(bw, "TouchRF_ChLeft", 0), ""); text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), m.inc ? "dmRiftNextOpen" : "dmRiftRetryOpen")); text(find(bw, "TouchRF_ChProg", 0), ""); text(find(bw, "TouchRF_ChNoteL", 0), dm_str(rb(), m.inc ? "dmRiftSaved" : "dmRiftNotCounted")); }
         else { int s = m.secs_left; text(find(bw, "TouchRF_ChLeftL", 0), dm_str(rb(), "dmRiftTimeLeft")); snprintf(t, sizeof t, "%d:%02d", s / 60, s % 60); text(find(bw, "TouchRF_ChLeft", 0), t);
             text(find(bw, "TouchRF_ChProgL", 0), dm_str(rb(), "dmRiftProgress")); snprintf(t, sizeof t, "%d%%", (int)(m.progress * 100)); text(find(bw, "TouchRF_ChProg", 0), t); text(find(bw, "TouchRF_ChNoteL", 0), ""); }
     } else {
         snprintf(t, sizeof t, "%d", g_sel); text(find(bw, "TouchRF_Num", 0), t);
+        if (m.reward_mode) { char target[24]; snprintf(target, sizeof target, "%d", m.reward_target); snprintf(t, sizeof t, dm_str(b, "dmRiftRewardChoice"), m.reward_target ? target : dm_str(b, "dmRiftRewardRandom"), rf_reward_quantity(g_sel, 1)); text(find(bw, "TouchRF_RewardChoice", 0), t); }
         btn_grey(find(bw, "TouchRF_M1", 0), g_sel <= 1); btn_grey(find(bw, "TouchRF_M10", 0), g_sel <= 1); btn_grey(find(bw, "TouchRF_P1", 0), g_sel >= m.unlock); btn_grey(find(bw, "TouchRF_P10", 0), g_sel >= m.unlock);   // 到边界置灰 | Greyed out at the limits
         snprintf(t, sizeof t, "1 – %d", m.unlock); text(find(bw, "TouchRF_Range", 0), t);
         snprintf(t, sizeof t, "%d", m.best); text(find(bw, "TouchRF_Best", 0), t);

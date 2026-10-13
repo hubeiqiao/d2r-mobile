@@ -14,6 +14,7 @@ static rf_encounter g_encounter;
 static int g_enc_density[3], g_enc_enabled;
 #endif
 static int failures;
+static int route_zero(int n) { (void)n; return 0; }
 static uint32_t route_seed = 1;
 static int route_draw(int n) { route_seed = route_seed * 1664525u + 1013904223u; return (int)((route_seed >> 8) % (unsigned)n); }
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #x); failures++; } } while (0)
@@ -43,10 +44,14 @@ int main(void) {
         CHECK(oc == ((p == RF_SWARM || p == RF_DREAM) ? 2 : 1)); CHECK(n == 3 || p == RF_BALANCED);
     }
     CHECK(first_open && first_maze);
+    CHECK(rf_route_pick(RF_BALANCED, open, 3, maze, 1, route_zero, out) == 2);
+    CHECK((out[0] < 10) + (out[1] < 10) == 1);
     CHECK(rf_route_pick(RF_SWARM, open, 1, maze, 2, route_draw, out) == 3);
     CHECK((out[0] < 10) + (out[1] < 10) + (out[2] < 10) == 1);
     CHECK(rf_route_pick(RF_HUNT, open, 0, maze, 3, route_draw, out) == 0);
-    CHECK(rf_route_pick(RF_HUNT, open, 3, maze, 1, route_draw, out) == 0);
+    CHECK(rf_route_pick(RF_HUNT, open, 3, maze, 1, route_draw, out) == 3);
+    CHECK(rf_route_pick(RF_HUNT, open, 1, maze, 1, route_draw, out) == 2);
+    CHECK(rf_route_pick(RF_HUNT, open, 3, maze, 0, route_draw, out) == 0);
     CHECK(rf_scaled(INT_MAX, INT_MAX, 9000) == 9000); CHECK(rf_scaled(-1, 3000, 9000) == 0);
     rf_observed seen = {0};
     for (uint32_t i = 1; i <= 4096; i++) CHECK(rf_observed_new(&seen, i));

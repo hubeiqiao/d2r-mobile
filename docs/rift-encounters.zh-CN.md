@@ -1,5 +1,8 @@
 # 大秘境随机遭遇方案（#26）
 
+整合版覆盖原型默认设置：默认经典，明确设1才开启。最新功能/限制见 [rift-endgame-integration.zh-CN.md](rift-endgame-integration.zh-CN.md)。
+
+
 本PR实现遭遇变化，尚未实现暗黑3整套怪物组合系统。参考的是暴雪历史赛季26奥瑞克梦境（精选地图/怪物组合）、2.4.3分布改动与2.7.6地图/怪物组合/密度调整：
 - https://news.blizzard.com/en-gb/article/23785083/season-26-the-fall-of-the-nephalem-patch-2-7-3-preview-blog
 - https://news.blizzard.com/en-us/article/20426802/patch-2-4-3-now-live

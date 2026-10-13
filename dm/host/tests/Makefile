@@ -4,12 +4,17 @@ DM_ROOT ?= $(HOME)/dm-work
 PY ?= $(DM_ROOT)/build/cache/dm/venv/bin/python
 EXEFS ?= $(DM_ROOT)/data/switch/3.3.94012/Update/ExeFS
 B = build
-run: $(B)/t_rift_tier_cap $(B)/t_rift_completion $(B)/t_rift_encounter $(B)/t_thread_leak $(B)/t_rift_clock $(B)/t_textbox $(B)/t_rwlv $(B)/t_padmap $(B)/t_touch $(B)/t_hid_receipt $(B)/t_hid_script $(B)/t_touch_mac $(B)/t_oe $(B)/t_fs $(B)/t_fs_case $(B)/t_romfs_validate $(B)/t_audio $(B)/t_audio_spsc $(B)/t_swkbd $(B)/t_altstack $(B)/t_movie $(B)/t_condvar $(B)/t_condvar_old $(B)/t_target_rank $(B)/t_hud_dead $(B)/t_namegen $(B)/t_modetx $(B)/t_unit_level $(B)/t_widget $(B)/t_doorspot $(B)/t_cloudsync $(B)/t_i18n $(B)/main.orig.bin $(B)/subsdk0.orig.bin
+run: $(B)/t_rift_reward_ui $(B)/t_rift_variant $(B)/t_rift_reward $(B)/t_rift_event $(B)/t_rift_integration $(B)/t_rift_tier_cap $(B)/t_rift_completion $(B)/t_rift_encounter $(B)/t_thread_leak $(B)/t_rift_clock $(B)/t_textbox $(B)/t_rwlv $(B)/t_padmap $(B)/t_touch $(B)/t_hid_receipt $(B)/t_hid_script $(B)/t_touch_mac $(B)/t_oe $(B)/t_fs $(B)/t_fs_case $(B)/t_romfs_validate $(B)/t_audio $(B)/t_audio_spsc $(B)/t_swkbd $(B)/t_altstack $(B)/t_movie $(B)/t_condvar $(B)/t_condvar_old $(B)/t_target_rank $(B)/t_hud_dead $(B)/t_namegen $(B)/t_modetx $(B)/t_unit_level $(B)/t_widget $(B)/t_doorspot $(B)/t_cloudsync $(B)/t_i18n $(B)/main.orig.bin $(B)/subsdk0.orig.bin
 	python3 native_write_scan.py --selftest ..
 	python3 mode_scan.py ../..
 	python3 ../../ios/tools/dm_i18n.py --check
 	python3 ../../i18n/scan_literals.py
 	$(B)/t_rift_encounter
+	$(B)/t_rift_variant
+	$(B)/t_rift_reward
+	$(B)/t_rift_event
+	$(B)/t_rift_integration
+	$(B)/t_rift_reward_ui
 	$(B)/t_rift_completion
 	$(B)/t_thread_leak
 	$(B)/t_rift_clock
@@ -110,14 +115,29 @@ $(B)/t_touch_mac: t_touch_mac.c ../touch_mac.c ../dm_cursor.c ../dm_hud.c ../dm_
 	clang -std=c11 -Wall -Wextra -Werror -I.. -I../../ios/Sources -o $@ t_touch_mac.c ../dm_cursor.c ../dm_hud.c -lm
 $(B)/t_target_rank: t_target_rank.c ../hle_target.c ../dm.h | $(B)
 	clang -O1 -Wno-unused-function -I.. -o $@ t_target_rank.c ../hle_target.c
-$(B)/t_rift_clock: t_rift_clock.c ../dm_rift.c ../dm_rift.h ../hle_os.c ../hle.h ../dm.h | $(B)
+$(B)/t_rift_clock: t_rift_clock.c ../dm_rift.c ../dm_rift_reward.h ../dm_rift_variant.h ../dm_rift_event.h ../dm_rift_encounter.h ../dm_rift.h ../hle_os.c ../hle.h ../dm.h | $(B)
 	clang -O1 -Wall -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_clock.c ../hle_os.c
 $(B)/t_thread_leak: t_thread_leak.c ../thread.c ../dm.h | $(B)
 	clang -O1 -Wall -Wno-unused-function -I.. -I../../ios/Sources -o $@ t_thread_leak.c
 
 $(B)/t_rift_encounter: t_rift_encounter.c ../dm_rift.c ../dm_rift_encounter.h ../dm_rift.h ../dm.h | $(B)
 	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_encounter.c
-$(B)/t_rift_completion: t_rift_completion.c ../dm_rift.c ../dm_rift.h ../hle_os.c ../dm.h | $(B)
+$(B)/t_rift_completion: t_rift_completion.c ../dm_rift.c ../dm_rift_reward.h ../dm_rift_variant.h ../dm_rift_event.h ../dm_rift_encounter.h ../dm_rift.h ../hle_os.c ../dm.h | $(B)
 	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_completion.c ../hle_os.c
-$(B)/t_rift_tier_cap: t_rift_tier_cap.c ../dm_rift.c ../dm_rift.h ../hle_os.c ../hle.h ../dm.h | $(B)
+$(B)/t_rift_tier_cap: t_rift_tier_cap.c ../dm_rift.c ../dm_rift_reward.h ../dm_rift_variant.h ../dm_rift_event.h ../dm_rift_encounter.h ../dm_rift.h ../hle_os.c ../hle.h ../dm.h | $(B)
 	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_tier_cap.c ../hle_os.c
+
+$(B)/t_rift_variant: t_rift_variant.c ../dm_rift_variant.h | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_variant.c
+
+$(B)/t_rift_reward: t_rift_reward.c ../dm_rift_reward.h | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_reward.c
+
+$(B)/t_rift_event: t_rift_event.c ../dm_rift_event.h | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_event.c
+
+$(B)/t_rift_integration: t_rift_integration.c ../dm_rift.c ../dm_rift_reward.h ../dm_rift_variant.h ../dm_rift_event.h ../dm_rift_encounter.h ../dm_rift.h ../hle_os.c | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_integration.c ../hle_os.c
+
+$(B)/t_rift_reward_ui: t_rift_reward_ui.c ../dm_rift_ui.c ../dm_rift_reward.h ../dm_rift.h ../dm.h | $(B)
+	clang -O1 -std=c11 -Wall -Wextra -Werror -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_reward_ui.c
