@@ -11,6 +11,15 @@ Platforms: iPhone / iPad (iOS 26 and later; iOS 18 – 25 with the older-API bui
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/hero_en.jpg" width="100%" alt="The game filling the whole edge-to-edge screen of an iPhone: Harrogath on Hell, with the red portal to the Greater Rift">
 </p>
+
+## Gameplay film
+
+<video src="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4" poster="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/promo-en-cover.jpg" controls preload="none" width="100%"></video>
+
+[Watch / download the English film](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4) · [中文版](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-zh-github-720p.mp4)
+
+<sub>1 min 36 sec · Real gameplay recording · 720p playback, approximately 8.9 MB. The video is encoded at 30 fps for a smaller download; this is separate from the game's frame rate. Original film content is preserved.</sub>
+
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/en_boss.jpg" width="49%" alt="Touch combat with the boss health bar pinned to the top">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/ipad.jpg" width="49%" alt="True full screen on iPad">
