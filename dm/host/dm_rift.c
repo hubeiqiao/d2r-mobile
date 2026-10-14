@@ -1270,7 +1270,15 @@ static int start_rift(uint64_t G, uint64_t player, uint32_t t, int tier) {
 // Spawn the Guardians of the current wave (K.wave). One: 6 tiles to the player's lower right; two: 6 tiles to the left and 6 to the right. Each is first scaled by level as usual (Guardian = this level's monster level + 3, the starting level also + 3, taking this level's total multiplier as well),
 // then multiplied by this wave's life factor (before capping) and damage factor
 #define WAVE_GAP 75
-static void guard_wave(uint64_t G, uint64_t player, uint32_t t, int lowhp) {
+static int guard_wave_due(uint32_t t, int lv) {
+    // 回城时保留待刷波，返回本场秘境图后再刷；服务端地图决定实际生成房间。
+    // Keep the pending wave in town and spawn on return to this run's rift maps; the server level determines the actual spawn room.
+    return K.wave_t && t >= K.wave_t + WAVE_GAP && atomic_load(&K.st) == ST_RUN && in_rift_map(lv);
+}
+static int guard_wave(uint64_t G, uint64_t player, uint32_t t, int lowhp) {
+    // 所有刷波入口都守住服务端地图边界；拒绝时不消费待刷状态。
+    // Guard the server-map boundary at every wave entry; refusal does not consume the pending state.
+    int lv = unit_level(player); if (!in_rift_map(lv) || !unit_room(player)) return 0;
     static const int ox[2][2] = { { 6, 0 }, { 6, -6 } }, oy[2][2] = { { 6, 0 }, { 6, 6 } }; int w = K.wave, nw = K.wn[w] < 1 ? 1 : K.wn[w] > 2 ? 2 : K.wn[w], x, y, n = 0; unit_xy(player, &x, &y); hs_sync();
     for (int i = 0; i < nw; i++) { int32_t pos[2] = { x + ox[nw - 1][i], y + oy[nw - 1][i] }; uint64_t rr = free_spot(G, unit_room(player), pos);
         uint64_t u = rr ? ((uint64_t (*)(uint64_t, uint64_t, int, int, int, int, int, int, uint64_t))(B + 0x7ce630))(G, rr, 1, K.wcls[w][i], pos[0], pos[1], 1, 0, 0x10) : 0;
@@ -1279,9 +1287,12 @@ static void guard_wave(uint64_t G, uint64_t player, uint32_t t, int lowhp) {
         if (lowhp) ss(u, 6, 256); else if (K.tier >= 9) { g_hp_mul = K.whp[w]; scale_monster(G, u, target_level(player) + 3, dm_rift_tier_level(9, gs(player, 12)) + 3); g_hp_mul = 1000; }
         if (K.wdm[w] != 1000 && !lowhp) ss(u, 25, (int)((100LL + gs(u, 25)) * K.wdm[w] / 1000 - 100));   // 伤害：属性 25 是「伤害 +N%」，整体乘 d 即 (100 + N) × d − 100 | damage: stat 25 is "damage +N%", so multiplying the whole by d gives (100 + N) x d - 100
         HS.guard_hp += gs(u, 7) >> 8;
-        LOG("秘境：拍 %u 刷守护者%s%s 类号 %d id %u 等级 %d 生命 %d 伤害百分比 %d", t, K.nwave > 1 ? (w == 0 ? "（第 1 波）" : w == 1 ? "（第 2 波）" : "（第 3 波）") : "", nw == 2 ? (i ? "（第二位）" : "（第一位）") : "", K.wcls[w][i], K.guards[i], gs(u, 12), gs(u, 7) >> 8, gs(u, 25)); }
+        LOG("秘境：拍 %u 刷守护者%s%s 类号 %d id %u 等级 %d 生命 %d 伤害百分比 %d", t, K.nwave > 1 ? (w == 0 ? "（第 1 波）" : w == 1 ? "（第 2 波）" : "（第 3 波）") : "", nw == 2 ? (i ? "（第二位）" : "（第一位）") : "", K.wcls[w][i], K.guards[i], gs(u, 12), gs(u, 7) >> 8, gs(u, 25));
+        LOG("秘境：守护者落点 第 %d 波 id %u 服务端关卡 %d 客户端关卡 %d 坐标 %d,%d", w + 1, K.guards[i], lv, atomic_load(&g_cli_lv), pos[0], pos[1]); }
     atomic_store(&K.gdead, 0); atomic_store(&K.gtotal, n);
-    if (n) { if (w == 0) say(nw == 2 && n == 2 ? "dmRiftSayGuardians" : "dmRiftSayGuardian"); else say("dmRiftSayWave", w + 1, K.nwave); } }
+    // 返回 1 表示已尝试生成；保留原有工厂失败语义，不自动重试未知结果。
+    // Returning 1 means spawning was attempted; preserve existing factory-failure semantics without retrying an unknown outcome.
+    if (n) { if (w == 0) say(nw == 2 && n == 2 ? "dmRiftSayGuardians" : "dmRiftSayGuardian"); else say("dmRiftSayWave", w + 1, K.nwave); } return 1; }
 void dm_rift_tick(uint64_t G, uint64_t player, uint8_t *main_base) {
     B = main_base; if (!G || !player || !B) return;
     atomic_store(&g_merc_req, 0); if (getenv("DM_TEST_MERC_EQUIP") || getenv("DM_TEST_MERC_DUMP")) merc_test(G, player, *(uint32_t *)(uintptr_t)(G + 0x170));
@@ -1585,7 +1596,7 @@ void dm_rift_tick(uint64_t G, uint64_t player, uint8_t *main_base) {
         guard_wave(G, player, t, lowhp); }
     // 两波之间：上一波全倒 WAVE_GAP 拍后刷下一波
     // Between two waves: WAVE_GAP ticks after the previous wave is all down, the next wave is spawned
-    if (K.wave_t && t >= K.wave_t + WAVE_GAP && atomic_load(&K.st) == ST_RUN) { guard_wave(G, player, t, lowhp); K.wave_t = 0; }   /* 先刷、再清「两波之间」：顶部条在两波之间报刚打完的那一波，刷出来才跳到下一波 | spawn first, then clear "between two waves": between waves the top bar reports the wave just finished, and moves to the next wave only once it has spawned */
+    if (guard_wave_due(t, lv) && guard_wave(G, player, t, lowhp)) K.wave_t = 0;   /* 先刷、再清「两波之间」：顶部条在两波之间报刚打完的那一波，刷出来才跳到下一波 | spawn first, then clear "between two waves": between waves the top bar reports the wave just finished, and moves to the next wave only once it has spawned */
     // 测试替身 DM_RIFT_TEST_DUMMY=<每秒点数>：对在场的每位守护者按固定输出扣当前生命（留 1 点，由随从补最后一下）——人物不用真打，用来出「承伤每秒峰值」的相对值
     // Test stand-in DM_RIFT_TEST_DUMMY=<points per second>: deduct current life from every Guardian present at a fixed output (leaving 1 point, with a minion delivering the last hit) - the character does not have to fight for real; used to obtain relative values of the "per-second peak of damage taken"
     { static int dps = -1; if (dps < 0) { const char *e = getenv("DM_RIFT_TEST_DUMMY"); dps = e ? atoi(e) : 0; }
