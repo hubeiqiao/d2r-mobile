@@ -14,11 +14,13 @@ Platforms: iPhone / iPad (iOS 26 and later; iOS 18 – 25 with the older-API bui
 
 ## Gameplay film
 
-<video src="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4" poster="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/promo-en-cover.jpg" controls preload="none" width="100%"></video>
+<p align="center">
+  <a href="https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en"><img src="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/promo-en-cover.jpg" width="100%" alt="Click to watch the English gameplay film"></a>
+</p>
 
-[Watch / download the English film](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4) · [中文版](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-zh-github-720p.mp4)
+[▶ Watch in English](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en) · [中文版](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh) · [Download MP4](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4)
 
-<sub>1 min 36 sec · Real gameplay recording · 720p playback, approximately 8.9 MB. The video is encoded at 30 fps for a smaller download; this is separate from the game's frame rate. Original film content is preserved.</sub>
+<sub>Click the cover to open the player with playback, full screen and language selection. 1 min 36 sec · Real gameplay recording · 720p, approximately 8.9 MB. The video is encoded at 30 fps for a smaller download; this is separate from the game's frame rate. Original film content is preserved.</sub>
 
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/en_boss.jpg" width="49%" alt="Touch combat with the boss health bar pinned to the top">

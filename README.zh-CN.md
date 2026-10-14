@@ -14,11 +14,13 @@ English: [README.md](README.md)
 
 ## 实机宣传片
 
-<video src="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-zh-github-720p.mp4" poster="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/promo-zh-cover.jpg" controls preload="none" width="100%"></video>
+<p align="center">
+  <a href="https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh"><img src="https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/promo-zh-cover.jpg" width="100%" alt="点击观看中文实机宣传片"></a>
+</p>
 
-[播放 / 下载中文版](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-zh-github-720p.mp4) · [English version](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-en-github-720p.mp4)
+[▶ 观看中文版](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh) · [English version](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en) · [下载 MP4](https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/xiaoboluo-promo-zh-github-720p.mp4)
 
-<sub>1 分 36 秒 · 实机录屏 · 720p 播放版，约 8.9 MB。为减少加载流量，视频编码为 30 帧；这与游戏运行帧率是两回事，原片内容完整保留。</sub>
+<sub>点击封面打开播放器，支持播放、全屏与中英切换。1 分 36 秒 · 实机录屏 · 720p，约 8.9 MB。为减少加载流量，视频编码为 30 帧；这与游戏运行帧率是两回事，原片内容完整保留。</sub>
 
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/touch.jpg" width="49%" alt="触屏战斗，首领血条置顶">
