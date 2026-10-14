@@ -15,12 +15,12 @@ Platforms: iPhone / iPad (iOS 26 and later; iOS 18 – 25 with the older-API bui
 ## Gameplay film
 
 <p align="center">
-  <a href="https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en"><img src="https://hubeiqiao.github.io/d2r-mobile/promo/media/cover-en-v2.jpg" width="100%" alt="Click to watch the English gameplay film"></a>
+  <a href="https://www.youtube.com/watch?v=C2LDoMhCtrw"><img src="https://hubeiqiao.github.io/d2r-mobile/promo/media/cover-en-v2.jpg" width="100%" alt="Click to watch the English gameplay film"></a>
 </p>
 
-[▶ Watch in English](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en) · [中文版](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh) · [Download MP4](https://hubeiqiao.github.io/d2r-mobile/promo/media/film-en-v2.mp4)
+[▶ Watch on YouTube](https://www.youtube.com/watch?v=C2LDoMhCtrw) · [哔哩哔哩观看](https://www.bilibili.com/video/BV1W7pz6CE89/)
 
-<sub>Click the cover to open the player with playback, full screen and language selection. 1 min 36 sec · Real gameplay recording · 720p, approximately 8.9 MB. The video is encoded at 30 fps for a smaller download; this is separate from the game's frame rate. Original film content is preserved.</sub>
+<sub>1 min 36 sec · Real gameplay film. Click the cover to watch on YouTube, or choose Bilibili.</sub>
 
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/en_boss.jpg" width="49%" alt="Touch combat with the boss health bar pinned to the top">

@@ -15,12 +15,12 @@ English: [README.md](README.md)
 ## 实机宣传片
 
 <p align="center">
-  <a href="https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh"><img src="https://hubeiqiao.github.io/d2r-mobile/promo/media/cover-zh-v2.jpg" width="100%" alt="点击观看中文实机宣传片"></a>
+  <a href="https://www.bilibili.com/video/BV1W7pz6CE89/"><img src="https://hubeiqiao.github.io/d2r-mobile/promo/media/cover-zh-v2.jpg" width="100%" alt="点击观看中文实机宣传片"></a>
 </p>
 
-[▶ 观看中文版](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=zh) · [English version](https://hubeiqiao.github.io/d2r-mobile/promo/?lang=en) · [下载 MP4](https://hubeiqiao.github.io/d2r-mobile/promo/media/film-zh-v2.mp4)
+[▶ 在 B 站观看](https://www.bilibili.com/video/BV1W7pz6CE89/) · [YouTube](https://www.youtube.com/watch?v=C2LDoMhCtrw)
 
-<sub>点击封面打开播放器，支持播放、全屏与中英切换。1 分 36 秒 · 实机录屏 · 720p，约 8.9 MB。为减少加载流量，视频编码为 30 帧；这与游戏运行帧率是两回事，原片内容完整保留。</sub>
+<sub>1 分 36 秒 · 实机宣传片。点击封面在 B 站观看，也可以选择 YouTube。</sub>
 
 <p align="center">
   <img src="https://github.com/jhaizhou-ops/d2r-mobile/releases/download/assets/touch.jpg" width="49%" alt="触屏战斗，首领血条置顶">
