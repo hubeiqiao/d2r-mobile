@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D2R Mobile · Gameplay film</title>
+<meta name="description" content="Watch the complete Chinese or English D2R Mobile gameplay film.">
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111;color:#eee}*{box-sizing:border-box}body{margin:0}main{max-width:1080px;margin:0 auto;padding:32px 20px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:20px}h1{font-size:24px;margin:0}nav{display:flex;gap:8px}button{border:1px solid #555;background:#222;color:#ddd;padding:9px 15px;border-radius:8px;font:inherit;cursor:pointer}button[aria-pressed=true]{border-color:#d5bb76;color:#f4dea2;background:#302819}button:focus-visible,a:focus-visible{outline:2px solid #d5bb76;outline-offset:4px}video{display:block;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px}p{line-height:1.65;color:#bbb;margin:14px 0}a{color:#e3c781}footer{border-top:1px solid #333;margin-top:28px;padding-top:15px;font-size:13px}#error{color:#f0b48e}@media(max-width:540px){main{padding:20px 12px}header{align-items:flex-start}h1{font-size:20px}button{padding:8px 10px}p{font-size:14px}}
+</style>
+</head>
+<body><main>
+<header><h1>D2R Mobile</h1><nav aria-label="Video language"><button type="button" id="zh" lang="zh-CN" aria-pressed="false">中文</button><button type="button" id="en" lang="en" aria-pressed="true">English</button></nav></header>
+<video id="film" controls playsinline preload="metadata" aria-label="Gameplay film"></video>
+<p id="caption"></p><p><a id="download" href="#"></a> · <a id="project" href="https://github.com/jhaizhou-ops/d2r-mobile"></a></p>
+<p id="error" hidden role="status"></p>
+<footer><p id="notice"></p></footer>
+</main>
+<script>
+const base='https://github.com/hubeiqiao/d2r-mobile/releases/download/promo-v1/';
+const copy={zh:{caption:'完整实机宣传片 · 1 分 36 秒 · 720p · 约 8.9 MB。视频压缩为 30 帧，游戏运行帧率请以上游项目说明为准。',download:'下载中文版',project:'查看开源项目与安装说明',notice:'个人非商业游戏展示，与暴雪无关。游戏版权归原权利人所有；运行项目须自备合法游戏文件。本页只提供宣传录屏，不提供游戏资源或安装包。',error:'视频加载失败，可使用下载链接观看。'},en:{caption:'Full gameplay film · 1 min 36 sec · 720p · About 8.9 MB. Video encoded at 30 fps; see the upstream project for game frame-rate information.',download:'Download English film',project:'Open-source project and installation guide',notice:'Personal non-commercial fan demonstration, not affiliated with Blizzard Entertainment. Game copyrights remain with their owners. Bring your own legally owned game files; this page provides recorded footage, not game resources or an app package.',error:'Video could not load. Use the download link to watch.'}};
+const film=document.querySelector('#film');let current='en';
+function select(lang){current=lang;const t=copy[lang];film.pause();film.poster=base+'promo-'+lang+'-cover.jpg';film.src=base+'xiaoboluo-promo-'+lang+'-github-720p.mp4';film.load();document.documentElement.lang=lang==='zh'?'zh-CN':'en';document.title='D2R Mobile · '+(lang==='zh'?'实机宣传片':'Gameplay film');document.querySelector('nav').setAttribute('aria-label',lang==='zh'?'视频语言':'Video language');film.setAttribute('aria-label',lang==='zh'?'实机宣传片':'Gameplay film');for(const name of ['caption','notice'])document.querySelector('#'+name).textContent=t[name];const download=document.querySelector('#download');download.href=film.src;download.textContent=t.download;document.querySelector('#project').textContent=t.project;document.querySelector('#error').hidden=true;for(const k of ['zh','en'])document.querySelector('#'+k).setAttribute('aria-pressed',String(k===lang));const u=new URL(location.href);u.searchParams.set('lang',lang);history.replaceState(null,'',u)}
+for(const k of ['zh','en'])document.querySelector('#'+k).addEventListener('click',()=>select(k));film.addEventListener('error',()=>{const e=document.querySelector('#error');e.textContent=copy[current].error;e.hidden=false});const requested=new URL(location.href).searchParams.get('lang');select(requested==='zh'||requested==='en'?requested:navigator.language.toLowerCase().startsWith('zh')?'zh':'en');
+</script></body></html>
