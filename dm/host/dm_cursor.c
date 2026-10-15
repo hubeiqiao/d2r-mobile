@@ -2656,34 +2656,12 @@ static void ui_panel_state_pump(uint64_t root) {   // 游戏主线程，每帧 |
 //   两种模式都跑：ui_target_pump（鉴定目标，含手柄按住 A）、ui_item_pump（命中查询，宿主自己也问）、ui_ptr_pump（指针事件，宿主合成的点击也走）、
 //     ui_safe_pump / ui_lift_pump / ui_note_dock_pump / ui_trove_tabs_pump / ui_minimap_pump / ui_map_pump / ui_map_geom_pump / ui_map_center（屏幕几何，与输入方式无关）、ui_boss_pct_pump、ui_npcdlg_pump、
 //     ui_widestash_pump、mv_audit_pump、ui_pages_pump（含手柄 L / R 翻页）、ui_watch_pump、ui_panel_heal、ui_panel_state_pump、rs_pump（一键重开，在前端泵里调）
-// 物品说明框停靠（观测门 OBS_TOOLTIP，挂在说明框面板的「提交一条说明」函数入口 main+0xb0d560(面板, 文字, 目标矩形左上 x2, 目标矩形宽高 x3, 样式, 文字 2)）。
-// 说明框是即时式的：悬停着的控件每帧重新提交、画完就清，宿主在自己的时机读面板里的记录数一直是 0，所以只能在提交那一刻改输入。
-// 原版把框摆在目标矩形（被点的那一格）正下 / 正上方：长说明（暗金、符文之语，十几行）盖住腰带、戒指、背包中间几列和「存放」钮，要点被盖住的格子得先点别处。
-// 触屏、只开着物品栏一个面板、光标下是物品时：把目标矩形换成对侧那块暗格空板（物品栏外框里、中间区域左右各一块）顶上的一个点——
-// 物品在面板右半停左空板、在左半停右空板，框从上往下排；量字、摆放、推回屏内仍是游戏自己做（离屏幕边的距离走布局里的 screenEdgePadding）。
-// 空板位置按屏高定（面板按屏高缩放）：空板中线离屏幕中线 0.617 × 屏高、顶边 0.117 × 屏高（iPhone 15 Pro 档 2556×1179 截图量：
-// 667 点宽视图里空板 108–180 / 487–558、屏高 307；拿 16:9 截图验算中线 102 落在那张图的空板 60–145 里）。
-// 原先按「屏幕边到面板内框的带子正中」算，只在 16:9 碰巧落在空板里，2.17:1 的 iPhone 上落到面板外框外、贴着屏幕边（iPhone 15 Pro 视频）。
-// 其余一律原样放行：手柄 / 键鼠模式；并排两个面板的页（储藏箱 / 商人 / 魔盒 / 单件槽 / 佣兵页——没有空带）；技能、属性、按钮的说明（光标下不是物品）；世界里的名牌。
-// 只许游戏主线程（门回调就在）。
-// 测试开关 DM_TEST_TIPDOCK=1：不看模式（Mac 宿主是手柄版，用它看效果）；=0：整个关掉
-// The per-frame pumps fall into two classes by mode (the long line in dm_ui_mouse_pump below; tests/mode_scan.py checks that every pump on that line either has if (tm) or is on this "runs in both modes" list; a newly added pump that is in neither is red).
-//   Touch only (with if (tm)): requests all come from touch gestures: tapping the world / mercenary portrait, long-press to pick up, double-tap to use, tap to buy, drag and drop, tapping to bind a skill, the off-hand set tab, opening the mercenary page.
-//     Not run in gamepad mode or while a switch transaction is in progress; requests in flight are cancelled by the switch cleanup (dm_ui_cache_mode_leave).
-//   Run in both modes: ui_target_pump (identify target, including holding A on the gamepad), ui_item_pump (hit queries, the host asks too), ui_ptr_pump (pointer events, host-synthesized clicks go through it as well),
-//     ui_safe_pump / ui_lift_pump / ui_note_dock_pump / ui_trove_tabs_pump / ui_minimap_pump / ui_map_pump / ui_map_geom_pump / ui_map_center (screen geometry, independent of input method), ui_boss_pct_pump, ui_npcdlg_pump,
-//     ui_widestash_pump, mv_audit_pump, ui_pages_pump (including L / R page turning on the gamepad), ui_watch_pump, ui_panel_heal, ui_panel_state_pump, rs_pump (one-tap restart, called from the front end pump)
-// Item description box docking (observation gate OBS_TOOLTIP, on the entry of the description panel's "submit one description" function main+0xb0d560(panel, text, target rect top-left x2, target rect size x3, style, text 2)).
-// The description box is immediate-mode: the hovered widget resubmits it every frame and it is cleared after drawing, so when the host reads the panel at its own time the record count is always 0; the input can only be changed at the moment of submission.
-// The original places the box directly below / above the target rect (the slot that was tapped): long descriptions (uniques, runewords, a dozen lines) cover the belt, rings, the middle columns of the inventory and the Stash button, and you have to tap elsewhere before you can tap a covered slot.
-// On touch, with only the inventory panel open and an item under the cursor: replace the target rect with a point at the top of the dark empty side panel on the opposite side (inside the inventory frame, one on each side of the middle area):
-// an item in the right half of the panel docks on the left panel and vice versa, and the box is laid out downward; measuring the text, placing it and pushing it back on screen are still done by the game (the distance from the screen edge uses screenEdgePadding from the layout).
-// The side panels are positioned by screen height (the panel scales with screen height): panel center line 0.617 x screen height from the screen center line, top edge 0.117 x screen height (measured on an iPhone 15 Pro 2556x1179 screenshot:
-// in a 667-point-wide view the panels span 108–180 / 487–558 with screen height 307; cross-checked on a 16:9 screenshot, center line 102 falls inside that image's panel at 60–145).
-// This used to be computed as "the middle of the band between the screen edge and the panel's inner frame", which only happened to land in the side panel on 16:9; on 2.17:1 iPhones it landed outside the panel frame against the screen edge (iPhone 15 Pro video).
-// Everything else passes through unchanged: gamepad / keyboard and mouse mode; pages with two panels side by side (stash / vendor / Horadric Cube / single-item slot / mercenary page, which have no empty band); descriptions of skills, attributes and buttons (no item under the cursor); name plates in the world.
-// Game main thread only (the gate callback runs there).
-// Test switch DM_TEST_TIPDOCK=1: ignore the mode (the Mac host is the gamepad version; use it to see the effect); =0: turn it off entirely
+// 物品说明锚点（OBS_TOOLTIP，main+0xb0d560 的 x2/x3）。缺省保留原版提交的物品矩形：
+// 原版按它把说明摆在物品上 / 下并推回屏内。此前强制对侧空板会让右下物品的说明跳到左上（#48）。
+// 不碰说明文字、比较、持留和物品手势。旧停靠只留给 DM_TEST_TIPDOCK=1 对照复现，不作为玩家缺省布局。
+// Item tooltip anchor (OBS_TOOLTIP, x2/x3 at main+0xb0d560). Preserve the native item rectangle by default:
+// the game positions the description above/below it and clamps it on screen. Forced opposite-panel docking moved bottom-right previews to the top left (#48).
+// Text, comparison, persistence and item gestures are untouched. Retain old docking only for the DM_TEST_TIPDOCK=1 reproduction control, not the player default.
 static int ui_touch_mode(void);
 // 说明框占的地方（给提示框让位用，见 ui_note_dock_pump）：提交时只有目标矩形和文字，框的大小游戏在提交函数里面量（main+0xb0f998），入口拿不到，
 // 按文字估：行数 = 换行数 + 1，每行 0.038 × 屏高，上下边 0.03 × 屏高（Mac 16:10 截图标定：15 行长说明在 900 高界面里占 515）；
@@ -2702,7 +2680,7 @@ static void tip_dock(const uint64_t *regs);
 void dm_ui_tooltip_obs(const uint64_t *regs) { tip_dock(regs); tip_note(regs); }   // 先按触屏规则改停靠目标，再按最终目标记占位 | First change the dock target by touch rules, then record the occupied area by the final target
 static void tip_dock(const uint64_t *regs) {
     static int force = -2; if (force == -2) { const char *e = getenv("DM_TEST_TIPDOCK"); force = e ? atoi(e) : -1; }
-    if (force == 0 || (force < 0 && !ui_touch_mode())) return;
+    if (force != 1) return;
     module_t *m = main_module(); uint64_t root = 0; if (!m) return; memcpy(&root, m->base + 0x2f05458, 8); if (!root) return;
     if (atomic_load(&g_pstate) & (DM_PS_BANK | DM_PS_VENDOR | DM_PS_IMBUE | DM_PS_CUBE | DM_PS_VAULT | DM_PS_DEAD)) return;
     if (!ui_panel(root, "PlayerInventoryExpansionLayout") || ui_panel(root, "HirelingInventoryPanel")) return;
