@@ -22,6 +22,8 @@ run: \
 	$(B)/t_hid_script \
 	$(B)/t_hud_dead \
 	$(B)/t_i18n \
+	$(B)/t_interaction_diag \
+	$(B)/t_map_diag \
 	$(B)/t_modetx \
 	$(B)/t_movie \
 	$(B)/t_namegen \
@@ -39,6 +41,7 @@ run: \
 	$(B)/t_touch \
 	$(B)/t_touch_mac \
 	$(B)/t_unit_level \
+	$(B)/t_warp_diag \
 	$(B)/t_widget
 	python3 native_write_scan.py --selftest ..
 	python3 mode_scan.py ../..
@@ -71,6 +74,9 @@ run: \
 	$(B)/t_modetx
 	$(B)/t_padmap
 	$(B)/t_unit_level
+	$(B)/t_interaction_diag
+	$(B)/t_map_diag
+	$(B)/t_warp_diag
 	$(B)/t_widget
 	$(B)/t_doorspot
 	TMPDIR="$(abspath $(B))" $(B)/t_cloudsync 2>/dev/null
@@ -152,3 +158,12 @@ $(B)/t_rift_oldrun: t_rift_oldrun.c ../dm_rift.c ../dm_rift.h ../hle_os.c ../hle
 	clang -O1 -Wall -Wno-unused-function -ffunction-sections -fdata-sections -Wl,-dead_strip -I.. -o $@ t_rift_oldrun.c ../hle_os.c
 $(B)/t_thread_leak: t_thread_leak.c ../thread.c ../dm.h | $(B)
 	clang -O1 -Wall -Wno-unused-function -I.. -I../../ios/Sources -o $@ t_thread_leak.c
+
+$(B)/t_interaction_diag: t_interaction_diag.c ../dm_world.c ../dm_unit.h | $(B)
+	clang -O1 -Wno-unused-function -Wl,-dead_strip -I.. -o $@ t_interaction_diag.c
+
+$(B)/t_map_diag: t_map_diag.c ../dm_cursor.c ../dm_unit.h | $(B)
+	clang -O1 -Wno-unused-function -Wl,-dead_strip -I.. -o $@ t_map_diag.c
+
+$(B)/t_warp_diag: t_warp_diag.c ../dm_rift.c ../dm_unit.h | $(B)
+	clang -O1 -Wno-unused-function -Wl,-dead_strip -I.. -o $@ t_warp_diag.c

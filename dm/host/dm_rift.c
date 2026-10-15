@@ -764,7 +764,11 @@ void svc_rift_exit(uint64_t *regs) {
 // This path is identified by player state, not by level id: changing level while dead = resurrect in town, the destination is unified to Harrogath
 // (the Rift's town, where the Rift gate is), the Rift stays in progress, and "Continue" at the gate goes back
 static void rift_level_obs(const uint64_t *regs) {
-    uint64_t G = regs[0], pl = regs[1]; int lv = (int)(uint32_t)regs[2]; if (!rift_exit_active(G, pl)) return;
+    uint64_t G = regs[0], pl = regs[1]; int lv = (int)(uint32_t)regs[2];
+    // 普通冒险也记录服务端实际换图请求；不记角色名，不改变目的地或重试传送。
+    // Record the server's level-change request in ordinary adventure too; no character names, destination changes or teleport retries.
+    if (G && pl) LOG("换图请求诊断：拍 %u 玩家 %u 当前 %d 目标 %d 方式 %u 秘境状态 %d", *(uint32_t *)(uintptr_t)(G + 0x170), *(uint32_t *)(uintptr_t)(pl + 8), unit_level(pl), lv, (uint32_t)regs[3], atomic_load(&K.st));
+    if (!rift_exit_active(G, pl)) return;
     uint32_t pm = *(uint32_t *)(uintptr_t)(pl + 0xc);
     // 城镇 / 本次秘境图的放行以前没有记录：读取画面中崩溃时，最后一次目标和方式会丢失。只在实际换关入口记，不逐帧轮询。
     // The clearance of the town / this rift's maps previously left no record: on a crash during the loading screen, the last target and method were lost. Recorded only at the actual level change entry, not polled every frame.

@@ -2264,8 +2264,26 @@ static void ui_boss_pct_pump(module_t *m, uint64_t root) {
     if (*(uint64_t *)(tx + 0x90) == (uint64_t)n && !memcmp(*(const char **)(tx + 0x88), t, (size_t)n)) return;   // 字没变不写（同 dm_update.c set_text） | Do not write if the text is unchanged (same as dm_update.c set_text)
     ((void *(*)(uint64_t, const char *, uint64_t))(m->base + 0x136e5c))(tx + 0x88, t, (uint64_t)n); ((void (*)(uint64_t))(m->base + 0xadc434))(tx);
 }
+// 只在半秒采样中状态变化时记录小地图；不写控件或可见位，缺对象也要留下证据。
+// Log minimap state changes at the half-second sample only; never write widgets or visibility, and record missing objects too.
+typedef struct { uint64_t object; int valid, area, ingame, load, cfg, mini, visible, x, y, w, h, ux, uy, uw, uh, rw, rh; } map_diag_t;
+static map_diag_t g_map_diag; static int g_map_diag_have;
+static int ui_map_diag(module_t *m, uint64_t root) {
+    map_diag_t d; memset(&d, 0, sizeof d); dm_hud_info hi; dm_hud_get(&hi); d.valid = hi.valid; d.area = hi.area;
+    d.ingame = dm_uiscreen_ingame(); d.load = atomic_load(&g_load_up);
+    d.cfg = *(int32_t *)(m->base + 0x2d479f4); d.mini = *(int32_t *)(m->base + 0x2d5c748);
+    dm_ui_rect(&d.ux, &d.uy, &d.uw, &d.uh); dm_screen_real(&d.rw, &d.rh);
+    uint64_t am = ui_panel(root, "AutoMap");
+    if (am && *(uint64_t *)am == (uint64_t)m->base + 0x20c58a0) { d.object = am; d.visible = *(uint8_t *)(am + 0x50);
+        d.x = *(int32_t *)(am + 0x70); d.y = *(int32_t *)(am + 0x74); d.w = *(int32_t *)(am + 0x78); d.h = *(int32_t *)(am + 0x7c); }
+    if (g_map_diag_have && !memcmp(&d, &g_map_diag, sizeof d)) return 0;
+    int rebuilt = !g_map_diag_have || d.object != g_map_diag.object; memcpy(&g_map_diag, &d, sizeof d); g_map_diag_have = 1;
+    LOG("小地图诊断：区域 %d 玩家有效 %d 局内 %d 读取 %d 对象 %s 重建 %d 可见 %d 配置 %d 微缩 %d 矩形 %d,%d,%d,%d 界面 %d,%d,%d,%d 真实 %dx%d", d.area, d.valid, d.ingame, d.load, d.object ? "有" : "无", rebuilt, d.visible, d.cfg, d.mini, d.x, d.y, d.w, d.h, d.ux, d.uy, d.uw, d.uh, d.rw, d.rh);
+    return 1;
+}
 static void ui_minimap_pump(module_t *m, uint64_t root, int W, int H, uint64_t fr) {
     static uint64_t next; if (fr < next) return; next = fr + 30;
+    ui_map_diag(m, root);
     uint64_t w = ui_panel(root, "AutoMap"); if (!w || *(uint64_t *)w != (uint64_t)m->base + 0x20c58a0) return;
     int32_t x = *(int32_t *)(w + 0x70), y = *(int32_t *)(w + 0x74), ww = *(int32_t *)(w + 0x78), hh = *(int32_t *)(w + 0x7c); float sc = *(float *)(w + 0x80);
     if (ww <= 0 || hh <= 0 || ww > 4000 || hh > 2160 || !(sc > 0.1f && sc < 10)) return;

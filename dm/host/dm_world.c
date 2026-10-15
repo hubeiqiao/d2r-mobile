@@ -15,6 +15,8 @@
 #include <stdatomic.h>
 #include <math.h>
 #include <time.h>
+#include "dm_unit.h"
+#include "dm_hud.h"
 #include <TargetConditionals.h>
 
 static uint8_t *wb(void) { static uint8_t *b; if (!b) for (int i = 0; i < g_nmod; i++) if (!strcmp(g_mod[i].name, "main")) b = (uint8_t *)g_mod[i].base; return b; }
@@ -27,13 +29,37 @@ static int w_unit_xy(uint64_t u, int *x, int *y) {   // 单位格坐标：物件
 _Atomic uint64_t g_dm_move_allow_until_ns;   // 「点地移动包一律丢弃」（diag.c c2s_deliver）的豁免窗：由目标触发的走近 | exemption window for "click-ground move packets are always dropped" (diag.c c2s_deliver): an approach triggered by a target
 static uint64_t w_now_ns(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return (uint64_t)t.tv_sec * 1000000000ull + (uint64_t)t.tv_nsec; }
 static uint64_t g_release_at; static int g_rel_x, g_rel_y;
+// 物件交互的只读样本：不把返回 1 当换图成功，也不补发点击。新交互会明确结束旧追踪。
+// Read-only object-interaction samples: return 1 is not a successful warp, and no clicks are retried. A new interaction explicitly supersedes the previous trace.
+static struct { uint64_t seq, frame; uint32_t player; int active, stage, last_lv; } g_it;
+static uint64_t w_interaction_begin(uint64_t pl, uint64_t u, uint64_t fr) {
+    if (*(uint32_t *)(u) != 2) return 0;
+    if (g_it.active) LOG("物件交互诊断：序号 %llu 被新交互替代", (unsigned long long)g_it.seq);
+    g_it.seq++; g_it.frame = fr; g_it.player = *(uint32_t *)(pl + 8); g_it.active = 1; g_it.stage = 0; g_it.last_lv = dm_unit_level(pl);
+    int x = 0, y = 0; w_unit_xy(u, &x, &y);
+    LOG("物件交互诊断：序号 %llu 帧 %llu 玩家 %u 客户端关卡 %d 目标类号 %u id %u 坐标 %d,%d", (unsigned long long)g_it.seq, (unsigned long long)fr, g_it.player, g_it.last_lv, *(uint32_t *)(u + 4), *(uint32_t *)(u + 8), x, y);
+    return g_it.seq;
+}
+static void w_interaction_poll(uint64_t pl, uint64_t fr) {
+    if (!g_it.active) return;
+    if (!pl || *(uint32_t *)(pl + 8) != g_it.player || fr < g_it.frame) { LOG("物件交互诊断：序号 %llu 玩家离局或切换，结束", (unsigned long long)g_it.seq); g_it.active = 0; return; }
+    int lv = dm_unit_level(pl); uint64_t age = fr - g_it.frame;
+    static const uint64_t at[] = { 3, 30, 120 };
+    if (lv == g_it.last_lv && (g_it.stage >= 3 || age < at[g_it.stage])) return;
+    while (g_it.stage < 3 && age >= at[g_it.stage]) g_it.stage++;
+    int x = 0, y = 0; w_unit_xy(pl, &x, &y); dm_hud_info hi; dm_hud_get(&hi);
+    LOG("物件交互诊断：序号 %llu 后 %llu 帧 客户端关卡 %d 坐标 %d,%d 模式 %u 服务端最近快照 %d 有效 %d（样本非换图成功判据）", (unsigned long long)g_it.seq, (unsigned long long)age, lv, x, y, *(uint32_t *)(pl + 0xc), hi.area, hi.valid);
+    g_it.last_lv = lv; if (age >= 120) g_it.active = 0;
+}
 static int w_interact(uint64_t u) {   // 就近交互：游戏的点击入口（按下，3 帧后松开） | interact nearby: the game's click entry (press, release 3 frames later)
     uint8_t *b = wb(); uint64_t pl = w_player(); int x = 0, y = 0; if (!b || !pl || !u || !w_unit_xy(u, &x, &y)) return 0;
     uint64_t mgr = ((uint64_t (*)(void))(b + 0x2acecc))(), keep = *(uint64_t *)(mgr + 0xd10);
     atomic_store(&g_dm_move_allow_until_ns, w_now_ns() + 500000000ull);
+    uint64_t trace = w_interaction_begin(pl, u, dm_guest_frame());
     *(uint64_t *)(mgr + 0xd10) = u;
     int r = ((int (*)(uint64_t, int, int, int, uint64_t))(b + 0x4ace20))(pl, 7, x, y, 0);
     *(uint64_t *)(mgr + 0xd10) = keep;
+    if (trace) LOG("物件交互诊断：序号 %llu 点击入口返回 %d（尚未确认换图）", (unsigned long long)trace, r);
     g_release_at = dm_guest_frame() + 3; g_rel_x = x; g_rel_y = y;
     return r;
 }
@@ -630,6 +656,7 @@ void dm_world_pump(void) {   // 取手柄处每帧调 | Called every frame at th
     w_test_seek_step();
     w_test_xy_step();
     uint8_t *b = wb(); if (!b) return;
+    if (g_it.active) w_interaction_poll(w_player(), dm_guest_frame());
     w_watch_step(b);
     { void dm_potpick_step(uint8_t *); dm_potpick_step(b); }   // 药水自动拾取（dm_potpick.c） | automatic potion pickup (dm_potpick.c)
     { void dm_padmode_step(uint8_t *, uint64_t); dm_padmode_step(b, dm_guest_frame()); }   // 手柄 / 触屏布局切换（dm_padmode.c） | Controller / touch layout switching (dm_padmode.c)
