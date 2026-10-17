@@ -3,8 +3,9 @@
 #include "../dm_cursor.c"
 module_t g_mod[MAX_MOD]; int g_nmod;
 uint64_t dm_guest_frame(void) { return 1; }
-int dm_padmode_current(void) { return 0; }
-int dm_padmode_busy(void) { return 0; }
+static int padmode, modebusy;
+int dm_padmode_current(void) { return padmode; }
+int dm_padmode_busy(void) { return modebusy; }
 int dm_cursor_item(dm_cursor_item_info *o) { memset(o, 0, sizeof *o); strcpy(o->code, "cm3"); return 1; }
 int main(int argc, char **argv) {
     (void)argv; unsetenv("DM_TEST_TIPDOCK"); if (argc > 1) setenv("DM_TEST_TIPDOCK", "0", 1);
@@ -26,5 +27,16 @@ int main(int argc, char **argv) {
         else if (cx != want_x || (regs[2] >> 32) != (old[2] >> 32) || regs[3] != (old[3] & 0xffffffff00000000ull)) { fails++; printf("FAIL corner %d: x=%d, expected %d; vertical anchor must be retained\n",i,cx,want_x); }
         for (int k = 0; k < 9; k++) if (k != 2 && k != 3 && regs[k] != old[k]) fails++;
     }
-    free(base); printf("t_tooltip_anchor: %s, 4 corners, %d failures\n", argc > 1 ? "native control" : "same-side vertical anchor", fails); return fails != 0;
+    const unsigned excluded[] = { DM_PS_BANK, DM_PS_VENDOR, DM_PS_IMBUE, DM_PS_CUBE, DM_PS_VAULT, DM_PS_DEAD };
+    for (unsigned i=0;i<sizeof excluded/sizeof *excluded;i++) {
+        uint64_t r[9] = { 11, (uint64_t)(uintptr_t)"authored tooltip", 890ull | 740ull << 32, 70ull | 140ull << 32 }, old[9];
+        memcpy(old,r,sizeof r); atomic_store(&g_pstate,excluded[i]); dm_ui_tooltip_obs(r); if(memcmp(r,old,sizeof r)) fails++;
+    }
+    atomic_store(&g_pstate,0);
+    for (int i=0;i<2;i++) {
+        padmode=i==0; modebusy=i==1;
+        uint64_t r[9] = { 11, (uint64_t)(uintptr_t)"authored tooltip", 890ull | 740ull << 32, 70ull | 140ull << 32 }, old[9];
+        memcpy(old,r,sizeof r); dm_ui_tooltip_obs(r); if(memcmp(r,old,sizeof r)) fails++;
+    }
+    free(base); printf("t_tooltip_anchor: %s, 4 corners + 8 exclusion gates, %d failures\n", argc > 1 ? "native control" : "same-side vertical anchor", fails); return fails != 0;
 }
